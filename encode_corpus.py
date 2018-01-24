@@ -1,72 +1,27 @@
 __author__ = 'GCassani'
 
+"""Function to encode the corpus into phonetic cues and lexical outcomes (can be called from command line)"""
+
 import os
-import json
 import argparse
-import numpy as np
-from collections import defaultdict
-from time import strftime
+from corpus.encoder import corpus_encoder
 
 
-"""
-This module recodes an input corpus consisting of full utterances into smaller sequences of words, from single words to
-multi-word expressions and prosodic-like chunks. It consists of the following functions, listed together with a short
-description of what they do. Check the documentation of each function for details about input arguments and output
-structures; all functions assume the same input, i.e. transcripts from CHILDES consisting of two lists of lists. The
-first contains utterances encoded as lists of tokens, the second contains the same utterances, in the same order,
-encoded as lists of lemmas.
+def check_arguments(args, parser):
 
-- single_words          : recode the input corpus into lists of single words, essentially breaking down each utterance
-                            into the constituents tokens (first list) and lemmas (second list)
-- multiword_expressions : recode the input corpus into lists of multi-word expressions, defined on the basis of
-                            conditional probabilities (in line with the Chunk-Based Learner [McCauley & Christiansen,
-                            2014])
-- prosodic_chunks       : recode the input corpus into lists of prosodic-like chunks. It exploits the CBL to hypothesize
-                            distributionally motivated chunks and then merge them to satisfy the constraint that an
-                            utterance must be recoded in at least as many prosodic-like chunks as there are words
-                            carrying primary stress in the utterance itself
-- full_utterances       : gives back the corpus as it is, keeping the organization in full utterances as derived from
-                            CHILDES transcripts
-- main                  : a function that runs one or more of the other functions and is called when the module is run
-                            from command line
+    if not (args.uni or args.di or args.tri or args.syl):
+        parser.error('No specified phonetic encoding! Provide at least one of the following options: -u, -d, -t, -s')
 
-All functions return the corpus in the same form of the input, i.e. a json file consisting of two lists of lists, the
-first encoding tokens at the desired granularity (single words, multi-word expressions, prosodic-like chunks, full
-utterances) and the second encoding lemmas at the same granularity.
+    if not os.path.exists(args.celex_dir):
+        raise ValueError("The Celex directory you provided doesn't exist. Provide a valid path.")
 
-"""
+    if not os.path.exists(args.pos_mapping):
+        raise ValueError("The file containing the mapping from CHILDES to Celex PoS tags isn't valid."
+                         "Please provide a valid path.")
 
-
-def single_words(corpus_name):
-
-    corpus = json.load(open(corpus_name, 'r+'))
-
-    encoded_corpus = [[], []]
-
-    # for every utterance in the input corpus, remove words with a PoS tag that doesn't belong to the
-    # dictionary of PoS mappings; then map valid words to the right PoS tag as indicated by the PoS dictionary
-    for i in range(len(corpus[0])):
-        for j in range(len(corpus[0][i])):
-            encoded_corpus[0].append([corpus[0][i][j]])
-            encoded_corpus[1].append([corpus[1][i][j]])
-
-    return encoded_corpus
-
-
-########################################################################################################################
-
-
-def multiword_expressions(corpus):
-
-    return
-
-
-########################################################################################################################
-
-
-def prosodic_chunks(corpus):
-
-    return
+    if not os.path.exists(args.in_file) or not args.in_file.endswith(".json"):
+        raise ValueError("There are problems with the input corpus you provided: either the path does not exist or"
+                         "the file extension is not .json. Provide a valid path to a .json file.")
 
 
 ########################################################################################################################
@@ -74,39 +29,37 @@ def prosodic_chunks(corpus):
 
 def main():
 
-    parser = argparse.ArgumentParser(description='Recode utterances from the corpus.')
+    parser = argparse.ArgumentParser(description='Process arguments to create Celex dictionary.')
 
-    parser.add_argument("-i", "--input_file", required=True, dest="in_file",
+    parser.add_argument("-I", "--input_file", required=True, dest="in_file",
                         help="Specify the corpus to be used as input (encoded as .json).")
-    parser.add_argument("-s", "--size", dest="size", default='utterances',
-                        help="Specify granularity of the resulting encoding.")
+    parser.add_argument("-C", "--Celex_dir", required=True, dest="celex_dir",
+                        help="Specify the path to the Celex directory.")
+    parser.add_argument("-M", "--pos_mapping", required=True, dest="pos_mapping",
+                        help="Specify the path to the file containing the mapping between CHILDES and Celex PoS tags.")
+    parser.add_argument("-S", "--separator", dest="sep", default='~',
+                        help="Specify the character separating lemma and PoS tag in the input corpus.")
+    parser.add_argument("-u", "--uniphones", action="store_true", dest="uni",
+                        help="Specify if uniphones need to be encoded.")
+    parser.add_argument("-d", "--diphones", action="store_true", dest="di",
+                        help="Specify if diphones need to be encoded.")
+    parser.add_argument("-t", "--triphones", action="store_true", dest="tri",
+                        help="Specify if triphones need to be encoded.")
+    parser.add_argument("-s", "--syllables", action="store_true", dest="syl",
+                        help="Specify if syllables need to be encoded.")
+    parser.add_argument("-m", "--stress_marker", action="store_true", dest="stress",
+                        help="Specify if stress need to be encoded.")
+    parser.add_argument("-r", "--reduced", action="store_true", dest="reduced",
+                        help="Specify if reduced vowels are to be considered when extracting CELEX phonetic forms.")
 
     args = parser.parse_args()
 
-    encoding_options = ['utterances', 'prosodic', 'multiword', 'words']
+    check_arguments(args, parser)
 
-    if not args.size in encoding_options:
-        raise ValueError("The encoding option you selected is not available. Choose among 'utterances', 'prosodic',"
-                         "'multiword', or 'words'. Check the documentation for information about each encoding.")
+    corpus_encoder(args.in_file, args.celex_dir, args.pos_mapping, separator=args.sep,
+                   uni_phones=args.uni, di_phones=args.di, tri_phones=args.tri,
+                   syllable=args.syl, stress_marker=args.stress, reduced=args.reduced)
 
-    if not os.path.exists(args.in_file) or not args.in_file.endswith(".json"):
-        raise ValueError("There are problems with the input corpus you provided: either the path does not exist or"
-                         "the file extension is not .json. Provide a valid path to a .json file.")
-
-    encoded_corpus = [[], []]
-    if args.size == 'words':
-        encoded_corpus = single_words(args.in_file)
-    elif args.size == 'prosodic':
-        pass
-    elif args.size == 'multiword':
-        pass
-    else:
-        encoded_corpus = json.load(open(args.in_file, 'r+'))
-
-    basename, ext = os.path.splitext(args.in_file)
-    output_file = "".join(["_".join([basename, args.size]), ext])
-
-    json.dump(encoded_corpus, open(output_file, 'w'))
 
 ########################################################################################################################
 
