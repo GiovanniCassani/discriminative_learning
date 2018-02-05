@@ -13,7 +13,8 @@ def main():
     parser = argparse.ArgumentParser(description='Process arguments to create Celex dictionary.')
 
     parser.add_argument("-I", "--input_corpus", required=True, dest="input_corpus",
-                        help="Specify the corpus to be used as input (encoded as .json).")
+                        help="Specify the corpus to be used as input, consisting of lists of phonetic cues"
+                             "paired to sets of lexical outcomes (the file needs to be encoded as .json).")
     parser.add_argument("-L", "--longitudinal", action="store_true", dest="longitudinal",
                         help="Specify whether to work in a longitudinal design or not (default: False).")
     parser.add_argument("-a", "--alpha", dest="alpha", default=0.01,

@@ -56,7 +56,7 @@ def encode_corpus(corpus_name, celex_dict, tokens2identifiers, pos_dict,
                 words.append((token, new_tag, lemma))
 
         # if there are valid words in the utterance, encode it
-        if words:
+        if 0 < len(words) <= 12:
 
             # get the phonetic encoding of the words in the current learning trial:
             # if they can all be encoded using Celex, a list is returned, other wise a tuple is

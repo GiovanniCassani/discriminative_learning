@@ -28,10 +28,11 @@ def encode_item(item, uni_phones=True, di_phones=False, tri_phones=False,
 
     celex_vowels = vowels()
 
+    translation_table = dict.fromkeys(map(ord, "'"), None)
     if stress_marker:
         item = recode_stress(item, celex_vowels)
     else:
-        item = item.translate(None, "'")
+        item = item.translate(translation_table)
 
     uniphones = []
     diphones = []

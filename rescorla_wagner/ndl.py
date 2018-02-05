@@ -73,9 +73,7 @@ def ndl(input_file, alpha=0.01, beta=0.01, lam=1.0, longitudinal=False):
 
     # create file paths for every required time point
     output_files = {}
-    folder = os.path.splitext(input_file)[0]
-    if not os.path.exists(folder):
-        os.makedirs(folder)
+    folder = os.path.dirname(input_file)
 
     indices = np.linspace(10, 100, 10) if longitudinal else [100]
     for idx in indices:

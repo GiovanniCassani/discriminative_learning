@@ -2,15 +2,16 @@ __author__ = 'GCassani'
 
 """Function to categorize test items in terms of lexical categories using phonological information"""
 
+import json
 import operator
 import numpy as np
 from time import strftime
-from collections import Counter
 from scipy.stats import entropy
+from collections import defaultdict, Counter
 from corpus.encode.item import encode_item
 from phonetic_bootstrapping.pos_tagging.assign import pick_pos
 from phonetic_bootstrapping.pos_tagging.tags import pos_frequency_and_activation
-from phonetic_bootstrapping.pos_tagging.helpers import sort_lexical_nodes_from_matrix
+from phonetic_bootstrapping.pos_tagging.helpers import compute_outcomes_activations
 
 
 def categorize(test_items, logfile, weights_matrix, cues2ids, outcomes2ids, method='freq', evaluation='count',
@@ -86,22 +87,19 @@ def categorize(test_items, logfile, weights_matrix, cues2ids, outcomes2ids, meth
         ValueError("Unrecognized input structure: .")
 
     to_filter = set()
-    baseline_activations = sort_lexical_nodes_from_matrix(cues2ids.keys(), weights_matrix, cues2ids,
-                                                          outcomes2ids, to_filter)
+    baseline_activations = compute_outcomes_activations(cues2ids.keys(), weights_matrix, cues2ids,
+                                                        outcomes2ids, to_filter)
+    sorted_baseline_activations = sorted(baseline_activations.items(), key=operator.itemgetter(1), reverse=True)
 
     # if top active outcomes at baseline need to be flushed away, store flushed outcomes in a set and store the other
     # outcomes in a list of tuples
     if flush:
-        for outcome in baseline_activations[:flush]:
-            to_filter.add(outcome[0])
-        baseline_activations = baseline_activations[flush:]
+        to_filter = {outcome[0] for outcome in sorted_baseline_activations[:flush]}
+        sorted_baseline_activations = sorted_baseline_activations[flush:]
 
     # compute baseline frequency distribution over PoS tags and PoS summed activation over the k most active outcomes
     # given all input cues at once
-    pos_freq_baseline, pos_act_baseline = pos_frequency_and_activation(baseline_activations, k)
-    with open(logfile, 'a+') as log_f:
-        log_f.write("\t".join([str(baseline_activations[:k])]))
-        log_f.write("\n\n")
+    pos_freq_baseline, pos_act_baseline = pos_frequency_and_activation(sorted_baseline_activations[:k])
 
     hits = 0
     total = 0
@@ -109,33 +107,38 @@ def categorize(test_items, logfile, weights_matrix, cues2ids, outcomes2ids, meth
     check_points = {int(np.floor(total_items / 100 * n)): n for n in np.linspace(5,100,20)}
 
     chosen_tags = []
+    log_dict = defaultdict(dict)
 
     for item in test_items:
+
         if not isinstance(item, str):
             ValueError("The input items must consist of either strings or unicode objects: check your input file!")
 
         # split the test token from its Part-of-Speech and encode it in nphones
         word, target_pos = item.split('|')
         word = '+' + word + '+'
-        word_nphones = encode_item(word, uni_phones=uni_phones, di_phones=di_phones,
-                                   tri_phones=tri_phones, syllable=syllable, stress_marker=stress_marker)
+        nphones = encode_item(word, uni_phones=uni_phones, di_phones=di_phones,
+                              tri_phones=tri_phones, syllable=syllable, stress_marker=stress_marker)
 
-        # sort all words from the input matrix of associations according to the total activations that the phonetic cues
-        # in the test items have to each outcome; then get the top active nodes according to the specified method
-        item_activations = sort_lexical_nodes_from_matrix(word_nphones, weights_matrix, cues2ids,
-                                                          outcomes2ids, to_filter)
+        # compute outcome activations given the phonetic cues in the test item, sort the outcomes by outcome activation
+        # value and pick the top k
+        outcome_activations = compute_outcomes_activations(nphones, weights_matrix, cues2ids, outcomes2ids, to_filter)
+        sorted_outcome_activations = sorted(outcome_activations.items(), key=operator.itemgetter(1), reverse=True)[:k]
 
-        # get the most likely PoS tag for the test item
-        top_pos, value = pick_pos(item_activations, pos_freq_baseline, pos_act_baseline,
-                                  evaluation=evaluation, method=method, k=k, stats=stats)
+        # get the most likely PoS tag for the test item given the k top active outcomes
+        if sorted_outcome_activations[0][1] == 0:
+            top_pos, value = ('-', 0)
+        else:
+            top_pos, value = pick_pos(sorted_outcome_activations, pos_freq_baseline, pos_act_baseline,
+                                      evaluation=evaluation, method=method, stats=stats)
         chosen_tags.append(top_pos)
 
         # print the test item (with the correct PoS tag), the PoS tag assigned by the model, the statistic computed to
         # assign the chosen PoS (frequency/activation count or difference) and the k top active nodes given the test
         # item
-        with open(logfile, 'a+') as log_f:
-            log_f.write("\t".join([item, top_pos, str(value), str(item_activations[:k])]))
-            log_f.write("\n")
+        log_dict[item] = {'predicted': top_pos,
+                          'value': value,
+                          'items': {k: v for (k, v) in sorted_outcome_activations}}
 
         # compare the predicted and true PoS tag and increment the count of hits if they match
         if top_pos == target_pos:
@@ -144,8 +147,10 @@ def categorize(test_items, logfile, weights_matrix, cues2ids, outcomes2ids, meth
         total += 1
 
         if total in check_points:
-            print(strftime("%Y-%m-%d %H:%M:%S") + ": %d%% of the input corpus has been processed."
+            print(strftime("%Y-%m-%d %H:%M:%S") + ": %d%% of the test items have been processed."
                   % check_points[total])
+
+    json.dump(log_dict, open(logfile, 'w'))
 
     freq_counts = Counter(chosen_tags)
     pos, freq = sorted(freq_counts.items(), key=operator.itemgetter(1), reverse=True)[0]
@@ -158,4 +163,4 @@ def categorize(test_items, logfile, weights_matrix, cues2ids, outcomes2ids, meth
     # compute the accuracy dividing the number of correctly categorized test items by the total number of test items
     f1 = hits / float(total)
 
-    return f1, h, pos, freq
+    return f1, h, pos, freq, log_dict

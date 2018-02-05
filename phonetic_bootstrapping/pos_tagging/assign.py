@@ -8,7 +8,7 @@ from phonetic_bootstrapping.pos_tagging.helpers import dict2numpy, std_res, diff
 from phonetic_bootstrapping.pos_tagging.tags import pos_frequency_and_activation, get_top_pos_from_dict
 
 
-def pick_pos(item_activations, freq_baseline, act_baseline, k=100, evaluation='distr', method='freq', stats=True):
+def pick_pos(item_activations, freq_baseline, act_baseline, evaluation='distr', method='freq', stats=True):
 
     """
     :param item_activations:    an iterable containing tuples. Each tuple consists of a string and a floating; the
@@ -44,9 +44,6 @@ def pick_pos(item_activations, freq_baseline, act_baseline, k=100, evaluation='d
                                 baseline frequency/activation is chosen
                                 CAVEAT: this parameter only makes sense if the 'distr' option is chosen for the
                                             'evaluation'parameter
-    :param k:                   an integer specifying how many elements to consider from the baseline activations and
-                                the activations triggered by a specific test item. By default, the top 100 outcomes are
-                                considered, and compared according to the chosen combination of method and eval
     :return pos:                the PoS tag selected as the best candidate given the activation triggered by the
                                 test item
     :return value:              the value used to decide (according to the specifications chosen for the parameters
@@ -55,7 +52,7 @@ def pick_pos(item_activations, freq_baseline, act_baseline, k=100, evaluation='d
 
     # compute frequency distribution over PoS tags and PoS summed activation over the k most active outcomes given
     # the test item being considered
-    pos_freq_item, pos_act_item = pos_frequency_and_activation(item_activations, k)
+    pos_freq_item, pos_act_item = pos_frequency_and_activation(item_activations)
 
     if evaluation == 'distr':
         if method == 'freq':
@@ -71,6 +68,7 @@ def pick_pos(item_activations, freq_baseline, act_baseline, k=100, evaluation='d
                 res = std_res(observed_freq, expected_freq)
                 pos = col_ids[np.argmax(res[0])]
                 value = np.max(res[0])
+                return pos, value
             else:
                 # find the PoS with the largest positive difference between item measures and baseline and store
                 # the difference (frequency gain in one case, activation gain in the other); look for the largest
@@ -78,16 +76,18 @@ def pick_pos(item_activations, freq_baseline, act_baseline, k=100, evaluation='d
                 diff_freq = differences(pos_freq_item, freq_baseline)
                 diff_act = differences(pos_act_item, act_baseline)
                 pos, value = get_top_pos_from_dict(diff_freq, diff_act)
+                return pos, value
         else:
             diff_freq = differences(pos_freq_item, freq_baseline)
             diff_act = differences(pos_act_item, act_baseline)
             pos, value = get_top_pos_from_dict(diff_act, diff_freq)
+            return pos, value
     else:
         # find the PoS with highest frequency/summed activation in the item activation vector, and store the
         # frequency/activation
         if method == 'freq':
             pos, value = get_top_pos_from_dict(pos_freq_item, pos_act_item)
+            return pos, value
         else:
             pos, value = get_top_pos_from_dict(pos_act_item, pos_freq_item)
-
-    return pos, value
+            return pos, value

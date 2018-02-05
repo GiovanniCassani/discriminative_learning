@@ -2,6 +2,10 @@ __author__ = 'GCassani'
 
 """Helper function to identify and process words to be used as test items in the grid search experiments"""
 
+import json
+from collections import Counter
+from scipy.stats import entropy
+
 
 def align_tag_set(words, pos_mapping):
 
@@ -85,19 +89,22 @@ def get_stats_from_existing_logfile(log_file):
                         the parametrization corresponding to the input logfile
     """
 
-    f1, h, freq = [0, 0, 0]
-    pos = '_'
+    log_dict = json.load(open(log_file, "r"))
+    hits = 0
+    chosen_pos = []
+    total = len(log_dict)
 
-    with open(log_file, 'r') as f:
-        for line in f:
-            line = line.strip()
-            if line.startswith('Accuracy'):
-                f1 = line.split(': ')[1]
-            if line.startswith('Entropy'):
-                h = line.split(': ')[1]
-            if line.startswith('PoS'):
-                pos = line.split(': ')
-            if line.startswith('Frequency'):
-                freq = line.split(': ')[1]
+    for item in log_dict:
+        word, pos = item.split("|")
+        predicted = log_dict[item]['predicted']
+        if pos == predicted:
+            hits += 1
+        chosen_pos.append(predicted)
+
+    f1 = hits/total
+    chosen_pos_freqs = Counter(chosen_pos)
+    pos_frequencies = list(chosen_pos_freqs.values())
+    h = entropy(pos_frequencies, base=len(chosen_pos_freqs))
+    pos, freq = chosen_pos_freqs.most_common(1)[0]
 
     return f1, h, pos, freq

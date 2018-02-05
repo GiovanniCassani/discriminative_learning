@@ -6,8 +6,9 @@ import os
 from corpus.encode.utilities import encoding_features
 
 
-def make_log_file(training_corpus, test_items_file, output_folder, method, evaluation, flush, k, time, reduced=False, uni_phones=False,
-                  di_phones=True, tri_phones=False, syllable=False, stress_marker=True, outcomes='tokens'):
+def make_log_file(training_corpus, test_items_file, output_folder, method, evaluation, f, k, time, reduced=False,
+                  uni_phones=False, di_phones=True, tri_phones=False, syllable=False, stress_marker=True,
+                  outcomes='tokens'):
 
     """
     :param training_corpus: the path to the file used as input corpus for the experiment
@@ -32,7 +33,7 @@ def make_log_file(training_corpus, test_items_file, output_folder, method, evalu
                               frequencies or summed activations (a statistic is returned, Chi-squared for
                               frequency distributions and t-test for summed activations, whose value can be
                               correlated to reaction times)
-    :param flush:           specify whether (and how many) top active outcome at baseline to flush away from
+    :param f:               specify whether (and how many) top active outcome at baseline to flush away from
                             subsequent computations. It may be the case that whatever the input cues, the same high
                             frequency outcomes come out as being the most active. It may then make sense to not
                             consider them when evaluating the distribution of lexical categories over the most
@@ -58,18 +59,16 @@ def make_log_file(training_corpus, test_items_file, output_folder, method, evalu
     :return log_file:       the path of the file where the log of the experiment will be written
     """
 
-    encoding_string = encoding_features(training_corpus, reduced=reduced, uni_phones=uni_phones,
-                                        di_phones=di_phones, tri_phones=tri_phones, syllable=syllable,
-                                        stress_marker=stress_marker, verbose=False, outcomes=outcomes)
+    encoding = encoding_features(training_corpus, reduced=reduced, verbose=False, outcomes=outcomes,
+                                 uni_phones=uni_phones, di_phones=di_phones, tri_phones=tri_phones, syllable=syllable,
+                                 stress_marker=stress_marker)
 
     # create the log file in the same folder where the corpus is located, using encoding information in the file name,
     # including corpus, phonetic features, method, evaluation, f and k values
-    corpus_dir = os.path.dirname(training_corpus)
     filename = os.path.splitext(os.path.basename(training_corpus))[0]
     test_file = os.path.splitext(os.path.basename(test_items_file))[0]
-    log_file = os.path.join(corpus_dir, ".".join(["_".join(['logfile', filename, test_file, encoding_string,
-                                                            method, evaluation, ''.join(['t', str(time)]),
-                                                            ''.join(['k', str(k)]), ''.join(['f', str(flush)])]),
-                                                  'txt']))
+    log_file = os.path.join(output_folder, ".".join(['logfile', filename, test_file, encoding, method, evaluation,
+                                                     ''.join(['t', str(time)]), ''.join(['k', str(k)]),
+                                                     ''.join(['f', str(f)]), 'json']))
 
     return log_file

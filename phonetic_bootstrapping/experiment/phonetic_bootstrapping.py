@@ -110,6 +110,8 @@ def phonetic_bootstrapping(input_file, test_items_path, celex_dir, pos_mapping,
     weight_matrices, cues2ids, outcomes2ids = ndl(encoded_corpus, alpha=alpha, beta=beta,
                                                   lam=lam, longitudinal=longitudinal)
 
+    output_folder = os.path.dirname(encoded_corpus)
+
     print()
     print("#####" * 20)
     print()
@@ -134,36 +136,25 @@ def phonetic_bootstrapping(input_file, test_items_path, celex_dir, pos_mapping,
     frequencies = {}
     for idx in weight_matrices:
 
-        logfile = make_log_file(input_file, test_items_path, method, evaluation, flush, k, idx,
+        logfile = make_log_file(input_file, test_items_path, output_folder, method, evaluation, flush, k, idx,
                                 reduced=reduced, uni_phones=uni_phones, di_phones=di_phones, tri_phones=tri_phones,
                                 syllable=syllable, stress_marker=stress_marker, outcomes=outcomes)
 
         if os.path.exists(logfile):
-            f1, h, pos, freq = get_stats_from_existing_logfile(logfile)
             print("The file %s already exists, statistics for the corresponding parametrization are loaded from it" %
                   logfile)
+            f1, h, pos, freq = get_stats_from_existing_logfile(logfile)
 
         else:
-            f1, h, pos, freq = categorize(test_words, logfile, weight_matrices[idx], cues2ids, outcomes2ids,
-                                          method=method, evaluation=evaluation, flush=flush, k=k,
-                                          uni_phones=uni_phones, di_phones=di_phones, tri_phones=tri_phones,
-                                          syllable=syllable, stress_marker=stress_marker)
+            f1, h, pos, freq, log_dict = categorize(test_words, logfile, weight_matrices[idx], cues2ids, outcomes2ids,
+                                                    method=method, evaluation=evaluation, flush=flush, k=k,
+                                                    uni_phones=uni_phones, di_phones=di_phones, tri_phones=tri_phones,
+                                                    syllable=syllable, stress_marker=stress_marker)
         accuracies[idx] = f1
         entropies[idx] = h
         most_frequents[idx] = pos
         frequencies[idx] = freq
 
         print("Accuracy: %0.5f" % f1)
-
-        with open(logfile, 'a+') as l_f:
-            l_f.write("\n")
-            l_f.write("Accuracy: %0.5f" % f1)
-            l_f.write("\n")
-            l_f.write("Entropy: %0.5f" % h)
-            l_f.write("\n")
-            l_f.write("PoS: '%s'" % pos)
-            l_f.write("\n")
-            l_f.write("Frequency: %0.1f" % freq)
-            l_f.write("\n")
 
     return accuracies, entropies, most_frequents, frequencies

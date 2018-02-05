@@ -64,7 +64,10 @@ def corpus_encoder(corpus_name, celex_dir, pos_mapping, separator='~', reduced=T
     encoding_string = encoding_features(corpus_name, reduced=reduced, uni_phones=uni_phones, di_phones=di_phones,
                                         tri_phones=tri_phones, syllable=syllable, stress_marker=stress_marker,
                                         outcomes=outcomes)
-    output_file = input_filename + "_" + encoding_string + '.json'
+    output_folder = "_".join([input_filename, encoding_string])
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    output_file = os.path.join(output_folder, ".".join([output_folder.split('/')[-1], 'json']))
 
     # check whether the output file corresponding to the desired parameters already exist and stop if it does
     if os.path.isfile(output_file):
@@ -79,8 +82,9 @@ def corpus_encoder(corpus_name, celex_dir, pos_mapping, separator='~', reduced=T
         # get the corpus recoded into phonological cues and lexical outcomes, plus the percentage of utterances that
         # could not be recoded because one or more words do not have a corresponding entry in Celex
         encoded_corpus, missed = encode_corpus(corpus_name, celex_dict, tokens2identifiers, pos_dict,
-                                               separator=separator, uni_phones=False, di_phones=True,
-                                               tri_phones=False, syllable=False, stress_marker=True, outcomes=outcomes)
+                                               separator=separator, uni_phones=uni_phones, di_phones=di_phones,
+                                               tri_phones=tri_phones, syllable=syllable, stress_marker=stress_marker,
+                                               outcomes=outcomes)
         print()
         print(strftime("%Y-%m-%d %H:%M:%S") + ": Finished encoding utterances from input corpus '%s'" % corpus_name)
         print()

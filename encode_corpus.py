@@ -39,6 +39,8 @@ def main():
                         help="Specify the path to the file containing the mapping between CHILDES and Celex PoS tags.")
     parser.add_argument("-S", "--separator", dest="sep", default='~',
                         help="Specify the character separating lemma and PoS tag in the input corpus.")
+    parser.add_argument("-o", "--outcomes", dest="outcomes", default='tokens',
+                        help="Specify whethere to use 'lemmas' or 'tokens' (default) as lexical outcomes.")
     parser.add_argument("-u", "--uniphones", action="store_true", dest="uni",
                         help="Specify if uniphones need to be encoded.")
     parser.add_argument("-d", "--diphones", action="store_true", dest="di",
@@ -57,8 +59,8 @@ def main():
     check_arguments(args, parser)
 
     corpus_encoder(args.in_file, args.celex_dir, args.pos_mapping, separator=args.sep,
-                   uni_phones=args.uni, di_phones=args.di, tri_phones=args.tri,
-                   syllable=args.syl, stress_marker=args.stress, reduced=args.reduced)
+                   uni_phones=args.uni, di_phones=args.di, tri_phones=args.tri, syllable=args.syl,
+                   stress_marker=args.stress, reduced=args.reduced, outcomes=args.outcomes)
 
 
 ########################################################################################################################

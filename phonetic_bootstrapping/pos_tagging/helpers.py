@@ -2,7 +2,6 @@ __author__ = 'GCassani'
 
 """Functions that process test items and activation matrices to make categorization possible"""
 
-import operator
 import numpy as np
 from collections import defaultdict
 from scipy.stats import contingency
@@ -65,7 +64,7 @@ def std_res(observed, expected):
 ########################################################################################################################
 
 
-def sort_lexical_nodes_from_matrix(nphones, associations_matrix, cues, outcomes, to_filter):
+def compute_outcomes_activations(nphones, associations_matrix, cues, outcomes, to_filter):
 
     """
     :param nphones:             an iterable containing strings. Each string represent a phoneme sequence.
@@ -76,12 +75,9 @@ def sort_lexical_nodes_from_matrix(nphones, associations_matrix, cues, outcomes,
                                 values are integers.
     :param to_filter:           an iterable containing strings indicating prohibited outcomes, i.e. outcomes that
                                 should not be considered; if empty, all outcomes are considered
-    :return sorted_nodes:       a list of ordered tuples, whose first element is a string and second element is a
-                                number. The string is an outcome from the associations matrix and the number is the sum
-                                of all activations involving the word and all the input cues (n-phones). The ordering is
-                                done according to the second element in the tuples, i.e. the number: this means that the
-                                first tuple in the output list will contain the word that received the highest amount of
-                                activation given the input n-phones.
+    :return sorted_nodes:       a dictionary mapping strings to numbers. Strings are outcomes and numbers are total
+                                activations given a set of phonetic cues, that define the rows over which the sum is
+                                computed.
     """
 
     # get the row indices of all the input nphones (duplicates are counted as many times as they occur)
@@ -103,15 +99,12 @@ def sort_lexical_nodes_from_matrix(nphones, associations_matrix, cues, outcomes,
     # zip together outcomes and their respective total activations, matching on indices, and then sort the resulting
     # array, which turns it automatically into a list. If an outcome is in the list of items to filter out, do not
     # include it in the final sorted list
-    outcomes_alphas = []
+    outcomes_alphas = {}
     for i in range(alphas.shape[0]):
         if ids[i] not in to_filter:
-            outcomes_alphas.append((ids[i], alphas[i]))
-    dtype = [('word', 'S50'), ('total_v', float)]
-    outcomes_alphas = np.sort(np.array(outcomes_alphas, dtype=dtype), order='total_v')
-    sorted_nodes = sorted(outcomes_alphas, key=operator.itemgetter(1), reverse=True)
+            outcomes_alphas[ids[i]] = alphas[i]
 
-    return sorted_nodes
+    return outcomes_alphas
 
 
 ########################################################################################################################
