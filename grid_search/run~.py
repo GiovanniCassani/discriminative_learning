@@ -47,6 +47,30 @@ def run_grid_search(test_sets, training_corpora, cues, outcomes, stress_marker, 
                                  columns=["Test_set", "Corpus", "Cues", "Outcomes", "Stress", "Vowels",
                                           "Method", "Evaluation", "K", "F", "Time",
                                           "Accuracy", "Entropy", "PoS", "Frequency"])
+    """
+    Code to use the parallelizer:
+    
+    from itertools import product
+    from multiprocessing import Pool
+    
+    uniphones = ['True', 'False'] if 'uniphones' in cues else ['False']
+    diphones = ['True', 'False'] if 'diphones' in cues else ['False']
+    triphones = ['True', 'False'] if 'triphones' in cues else ['False']
+    syllables = ['True', 'False'] if 'syllables' in cues else ['False']
+    
+    # the order of parameters for the phonetic_bootstrapping() function is the following:
+    # input_file, test_items_path, celex_dir, pos_mapping, method, evaluation, k, flush, ambiguous, new, separator,
+    # reduced, outcomes, uni_phones, di_phones, tri_phones, syllable, stress_marker, alpha, beta, lam, longitudinal
+    all_parametrizations = product(training_corpora, test_sets, celex_folder, pos_mapping, methods, evaluations, k,
+                                   flush, 'unambiguous', 'new', '~', reduced, outcomes, uniphones, diphones, triphones,
+                                   syllables, stress_marker, 0.001, 0.001, 1.0, longitudinal)
+                         
+    for parametrization in all_parametrizations:
+        sm = "stress" if parametrization[4] else 'no-stress'
+        vowels = 'reduced' if parametrization[5] else 'full'
+
+        Pool.starmap(phonetic_bootstrapping, all_parametrizations, nodes=8)
+    """
 
     row_id = 0
     for test in test_sets:
