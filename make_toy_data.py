@@ -35,15 +35,17 @@ celex_dict = hardcode_words(celex_dict, "old", '18', '17', "'5ld", '5', 'X', "ol
 corpus_utterances = [[['i', 'want', 'an', 'ice-cream'],
                       ['you', 'report', 'the', 'crime'],
                       ['that', 'idea', 'is', 'gold']],
-                     [['i~pro', 'want~v', 'a~det', 'ice-cream~n'],
-                      ['you~pro', 'report~v', 'the~det', 'crime~n'],
-                      ['that~det', 'idea~n', 'be~v', 'gold~adj']]]
+                     [['i|pro', 'want|v', 'a|det', 'ice-cream|n'],
+                      ['you|pro', 'report|v', 'the|det', 'crime|n'],
+                      ['that|det', 'idea|n', 'be|v', 'gold|adj']]]
 
 toy_data_folder = "/home/cassani/phoneticBootstrapping/toyData/"
+if not os.path.exists(toy_data_folder):
+    os.makedirs(toy_data_folder)
 os.chdir(toy_data_folder)
 
 print_celex_dict(celex_dict, "toyCelex.json")
-with open("toyCorpus.json", 'ab+') as o_f:
+with open("toyCorpus.json", 'a+') as o_f:
     json.dump(corpus_utterances, o_f)
 
 # new-ambiguous:

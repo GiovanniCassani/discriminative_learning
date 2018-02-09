@@ -30,7 +30,7 @@ def get_pos_tag(word):
 ########################################################################################################################
 
 
-def pos_activation(input_list, target_category):
+def get_pos_activation(input_list, target_category):
 
     """
     :param input_list:      an iterable containing tuples. Each tuple consists of a string and a floating; the string,
@@ -56,14 +56,14 @@ def pos_activation(input_list, target_category):
 ########################################################################################################################
 
 
-def pos_frequency_and_activation(l):
+def get_frequency_and_activation_for_each_pos(l):
 
     """
     :param l:       an iterable containing tuples. Each tuple consists of a string and a floating; the string, in
                     turn, consists of two parts, separated by a vertical bar ('|')
-    :return freq:   a dictionary mapping all the PoS tags to their frequency in the k first tuples
+    :return freq:   a dictionary mapping all the PoS tags to their frequency in the input iterable
     :return act:    a dictionary mapping all the PoS tags to the sum of the activation values for words matching the
-                    PoS tag
+                    PoS tag across the words in the input iterable
 
     This function is used here to compute the frequency distribution of PoS tags in the k top active outcomes, provided
     in the input argument l, and the PoS activation across the same outcomes. The first dictionary maps PoS tags to
@@ -74,7 +74,7 @@ def pos_frequency_and_activation(l):
     freq = Counter([get_pos_tag(o[0]) for o in l])
     act = defaultdict(float)
     for pos in freq:
-        act[pos] = pos_activation(l, pos)
+        act[pos] = get_pos_activation(l, pos)
 
     return freq, act
 

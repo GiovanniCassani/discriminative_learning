@@ -4,6 +4,9 @@ __author__ = 'GCassani'
 
 import os
 import argparse
+from collections import defaultdict
+from grid_search.make_test_set import get_words_and_tags_from_test_set
+from phonetic_bootstrapping.experiment.helpers import compute_baselines
 from phonetic_bootstrapping.experiment.phonetic_bootstrapping import phonetic_bootstrapping
 
 
@@ -37,7 +40,7 @@ def main():
 
     parser.add_argument("-I", "--input_corpus", required=True, dest="input_corpus",
                         help="Specify the corpus to be used as input (encoded as .json).")
-    parser.add_argument("-T", "--test_items", required=True, dest="test_items_file",
+    parser.add_argument("-T", "--test_file", required=True, dest="test_file",
                         help="Specify the path to the file containing test items (encoded as .txt)."
                              "If the file doesn't exist, one is created according to the values of the"
                              "parameters -N and -A.")
@@ -88,13 +91,21 @@ def main():
 
     check_arguments(args, parser)
 
+    test_set = defaultdict(dict)
+    test_words, tags = get_words_and_tags_from_test_set(args.test_file)
+    test_set['filename'] = os.path.basename(args.test_file)
+    test_set['items'] = test_words
+    majority_baseline, entropy_baseline = compute_baselines(tags)
+    test_set['majority'] = majority_baseline
+    test_set['entropy'] = entropy_baseline
+
     # run the experiments using the input parameters
-    phonetic_bootstrapping(args.input_corpus, args.test_items_file, args.celex_dir, args.pos_mapping,
+    phonetic_bootstrapping(args.input_corpus, test_set, args.celex_dir, args.pos_mapping,
                            method=args.method, evaluation=args.evaluation, k=int(args.threshold), flush=int(args.flush),
-                           ambiguous=args.ambiguous, new=args.new, separator=args.sep, reduced=args.reduced,
+                           separator=args.sep, reduced=args.reduced, stress_marker=args.stress, outcomes=args.outcomes,
                            uni_phones=args.uni, di_phones=args.di, tri_phones=args.tri, syllable=args.syl,
-                           stress_marker=args.stress, outcomes=args.outcomes, longitudinal=args.longitudinal,
-                           alpha=float(args.alpha), beta=float(args.beta), lam=float(args.lam))
+                           longitudinal=args.longitudinal, alpha=float(args.alpha), beta=float(args.beta),
+                           lam=float(args.lam))
 
 
 ########################################################################################################################

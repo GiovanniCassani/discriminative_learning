@@ -6,13 +6,13 @@ import os
 from corpus.encode.utilities import encoding_features
 
 
-def make_log_file(training_corpus, test_items_file, output_folder, method, evaluation, f, k, time, reduced=False,
+def make_log_file(training_corpus, test_file, output_folder, method, evaluation, f, k, time, reduced=False,
                   uni_phones=False, di_phones=True, tri_phones=False, syllable=False, stress_marker=True,
                   outcomes='tokens'):
 
     """
     :param training_corpus: the path to the file used as input corpus for the experiment
-    :param test_items_file: the path to the file containing strings used as test items
+    :param test_file:       the path to the file containing strings used as test items
     :param output_folder:   the path to the folder where the logfile will be created
     :param method:          a string indicating the way in which the function looks at top active outcomes; two
                             options are available:
@@ -66,7 +66,7 @@ def make_log_file(training_corpus, test_items_file, output_folder, method, evalu
     # create the log file in the same folder where the corpus is located, using encoding information in the file name,
     # including corpus, phonetic features, method, evaluation, f and k values
     filename = os.path.splitext(os.path.basename(training_corpus))[0]
-    test_file = os.path.splitext(os.path.basename(test_items_file))[0]
+    test_file = os.path.splitext(test_file)[0]
     log_file = os.path.join(output_folder, ".".join(['logfile', filename, test_file, encoding, method, evaluation,
                                                      ''.join(['t', str(time)]), ''.join(['k', str(k)]),
                                                      ''.join(['f', str(f)]), 'json']))

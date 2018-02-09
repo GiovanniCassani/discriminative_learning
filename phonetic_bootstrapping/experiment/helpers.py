@@ -2,7 +2,7 @@ __author__ = 'GCassani'
 
 """Helper function to identify and process words to be used as test items in the grid search experiments"""
 
-import json
+import operator
 from collections import Counter
 from scipy.stats import entropy
 
@@ -25,7 +25,7 @@ def align_tag_set(words, pos_mapping):
     filtered_words = set()
 
     for word in words:
-        token, pos = word.split('|')
+        token, pos = word.split('~')
         if pos in pos_mapping:
             new_pos = pos_mapping[pos]
             filtered_words.add('|'.join([token, new_pos]))
@@ -36,24 +36,21 @@ def align_tag_set(words, pos_mapping):
 ########################################################################################################################
 
 
-def add_word_to_test_set(test_set, word, pos_tag, celex_lemmas):
+def derive_orthography_and_phonology(wordform, pos_tag, celex_lemmas):
 
     """
-    :param test_set:        a set of tuples (can also be empty)
-    :param word:            a string indicating the orthographic form of a word
+    :param wordform:        a string indicating the orthographic form of a word
     :param pos_tag:         a string indicating the PoS tag (from Celex) of that word
     :param celex_lemmas:    a dictionary mapping orthographic forms to the PoS tags with which each orthographic form
                             is tagged in the Celex database; furthermore, each PoS tag is mapped to the phonological
                             form of that word when belonging to that PoS tag
-    :return test_set:       the input set, with the input word added as a tuple consisting of the orthographic form and
-                            the phonetic form
+    :return word:           a tuple containing the input wordform in its orthographic and phonetic form
     """
 
-    orthographic = '|'.join([word, pos_tag])
-    phonetic = '|'.join([celex_lemmas[word][pos_tag], pos_tag])
-    test_set.add((orthographic, phonetic))
-
-    return test_set
+    orthographic = '|'.join([wordform, pos_tag])
+    phonetic = '|'.join([celex_lemmas[wordform][pos_tag], pos_tag])
+    word = (orthographic, phonetic)
+    return word
 
 
 ########################################################################################################################
@@ -75,10 +72,30 @@ def store_dict(array):
 ########################################################################################################################
 
 
-def get_stats_from_existing_logfile(log_file):
+def compute_baselines(tags):
 
     """
-    :param log_file:    the log file with the experiment outcome and summary statistic for a certain parametrization
+    :param tags:                a list of strings, representing the PoS tags of the words in the test set
+    :return majority_baseline:  the accuracy that would be achieved on the test set by always predicting the most
+                                frequent PoS tag in the set
+    :return entropy_baseline:   the entropy of the distribution of PoS tags as found in the test set
+    """
+
+    tag_frequencies = Counter(tags)
+    most_frequent = sorted(tag_frequencies.items(), key=operator.itemgetter(1), reverse=True)[0][1]
+    majority_baseline = most_frequent / len(tags)
+    entropy_baseline = entropy(list(tag_frequencies.values()), base=len(list(tag_frequencies)))
+
+    return majority_baseline, entropy_baseline
+
+
+########################################################################################################################
+
+
+def compute_summary_statistics(log_dict):
+
+    """
+    :param log_dict:    the dictionary containing the test items together with the categorization outcomes
     :return f1:         the proportion of items from the test set that were categorized correctly in the
                         parametrization corresponding to the input logfile
     :return h:          the normalized entropy of the distribution of PoS tags chosen by the model when tagging test
@@ -89,21 +106,24 @@ def get_stats_from_existing_logfile(log_file):
                         the parametrization corresponding to the input logfile
     """
 
-    log_dict = json.load(open(log_file, "r"))
     hits = 0
     chosen_pos = []
     total = len(log_dict)
+    tags = set()
 
     for item in log_dict:
         word, pos = item.split("|")
+        tags.add(pos)
         predicted = log_dict[item]['predicted']
         if pos == predicted:
             hits += 1
         chosen_pos.append(predicted)
 
-    f1 = hits/total
+    f1 = hits/total if total > 0 else 0
     chosen_pos_freqs = Counter(chosen_pos)
     pos_frequencies = list(chosen_pos_freqs.values())
+    while len(pos_frequencies) < len(tags):
+        pos_frequencies.append(0)
     h = entropy(pos_frequencies, base=len(chosen_pos_freqs))
     pos, freq = chosen_pos_freqs.most_common(1)[0]
 

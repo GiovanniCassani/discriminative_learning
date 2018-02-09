@@ -6,11 +6,10 @@ import json
 import operator
 import numpy as np
 from time import strftime
-from scipy.stats import entropy
-from collections import defaultdict, Counter
+from collections import defaultdict
 from corpus.encode.item import encode_item
 from phonetic_bootstrapping.pos_tagging.assign import pick_pos
-from phonetic_bootstrapping.pos_tagging.tags import pos_frequency_and_activation
+from phonetic_bootstrapping.pos_tagging.tags import get_frequency_and_activation_for_each_pos
 from phonetic_bootstrapping.pos_tagging.helpers import compute_outcomes_activations
 
 
@@ -19,7 +18,8 @@ def categorize(test_items, logfile, weights_matrix, cues2ids, outcomes2ids, meth
                stress_marker=False):
 
     """
-    :param test_items:      an iterable containing strings. Each string is the phonological form of a word
+    :param test_items:      an iterable containing strings. Each string is the phonological form of a word together
+                            with its PoS tag, separated by a vertical bar ('|')
     :param logfile:         the path to a .txt file, where the function prints information about the processes it runs
                             and their outcome
     :param weights_matrix:  a NumPy array containing the matrix of cue-outcome associations estimated via the ndl
@@ -99,20 +99,22 @@ def categorize(test_items, logfile, weights_matrix, cues2ids, outcomes2ids, meth
 
     # compute baseline frequency distribution over PoS tags and PoS summed activation over the k most active outcomes
     # given all input cues at once
-    pos_freq_baseline, pos_act_baseline = pos_frequency_and_activation(sorted_baseline_activations[:k])
+    pos_freq_baseline, pos_act_baseline = get_frequency_and_activation_for_each_pos(sorted_baseline_activations[:k])
 
     hits = 0
     total = 0
     total_items = len(test_items)
-    check_points = {int(np.floor(total_items / 100 * n)): n for n in np.linspace(5,100,20)}
+    check_points = {int(np.floor(total_items / 100 * n)): n for n in np.linspace(5, 100, 20)}
 
-    chosen_tags = []
     log_dict = defaultdict(dict)
 
+    tags = set()
     for item in test_items:
 
+        tags.add(item.split("|")[1])
+
         if not isinstance(item, str):
-            ValueError("The input items must consist of either strings or unicode objects: check your input file!")
+            ValueError("The input items must consist of strings: check your input file!")
 
         # split the test token from its Part-of-Speech and encode it in nphones
         word, target_pos = item.split('|')
@@ -125,19 +127,34 @@ def categorize(test_items, logfile, weights_matrix, cues2ids, outcomes2ids, meth
         outcome_activations = compute_outcomes_activations(nphones, weights_matrix, cues2ids, outcomes2ids, to_filter)
         sorted_outcome_activations = sorted(outcome_activations.items(), key=operator.itemgetter(1), reverse=True)[:k]
 
-        # get the most likely PoS tag for the test item given the k top active outcomes
         if sorted_outcome_activations[0][1] == 0:
-            top_pos, value = ('-', 0)
+            # if the activation of the first item is 0 it means that no phonetic cue from the test item was ever
+            # encountered in the corpus, and it is thus impossible to estimate which are most active outcomes given
+            # the phonetic cues of which the test item consists
+            top_pos, value, n_freq, v_freq, n_act, v_act = ('-', 0, 0, 0, 0, 0)
+
         else:
-            top_pos, value = pick_pos(sorted_outcome_activations, pos_freq_baseline, pos_act_baseline,
+            # compute frequency distribution over PoS tags and PoS summed activation over the k most active outcomes
+            # given the test item, then get how many verbs and nouns there were among to k top active outcomes
+            pos_freq_item, pos_act_item = get_frequency_and_activation_for_each_pos(sorted_outcome_activations)
+            n_freq = pos_freq_item['N']
+            v_freq = pos_freq_item['V']
+            n_act = pos_act_item['N']
+            v_act = pos_act_item['V']
+
+            # get the most likely PoS tag for the test item given the k top active outcomes
+            top_pos, value = pick_pos(pos_freq_item, pos_act_item, pos_freq_baseline, pos_act_baseline,
                                       evaluation=evaluation, method=method, stats=stats)
-        chosen_tags.append(top_pos)
 
         # print the test item (with the correct PoS tag), the PoS tag assigned by the model, the statistic computed to
         # assign the chosen PoS (frequency/activation count or difference) and the k top active nodes given the test
         # item
         log_dict[item] = {'predicted': top_pos,
                           'value': value,
+                          'n_freq': n_freq,
+                          'v_freq': v_freq,
+                          'n_act': n_act,
+                          'v_act': v_act,
                           'items': {k: v for (k, v) in sorted_outcome_activations}}
 
         # compare the predicted and true PoS tag and increment the count of hits if they match
@@ -152,15 +169,4 @@ def categorize(test_items, logfile, weights_matrix, cues2ids, outcomes2ids, meth
 
     json.dump(log_dict, open(logfile, 'w'))
 
-    freq_counts = Counter(chosen_tags)
-    pos, freq = sorted(freq_counts.items(), key=operator.itemgetter(1), reverse=True)[0]
-    freq_counts = list(freq_counts.values())
-    while len(freq_counts) < 9:
-        freq_counts.append(0)
-
-    h = entropy(freq_counts, base=len(freq_counts))
-
-    # compute the accuracy dividing the number of correctly categorized test items by the total number of test items
-    f1 = hits / float(total)
-
-    return f1, h, pos, freq, log_dict
+    return log_dict

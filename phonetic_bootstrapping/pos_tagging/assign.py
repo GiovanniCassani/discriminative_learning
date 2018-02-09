@@ -5,14 +5,17 @@ __author__ = 'GCassani'
 import numpy as np
 from scipy.stats import chi2_contingency
 from phonetic_bootstrapping.pos_tagging.helpers import dict2numpy, std_res, differences
-from phonetic_bootstrapping.pos_tagging.tags import pos_frequency_and_activation, get_top_pos_from_dict
+from phonetic_bootstrapping.pos_tagging.tags import get_top_pos_from_dict
 
 
-def pick_pos(item_activations, freq_baseline, act_baseline, evaluation='distr', method='freq', stats=True):
+def pick_pos(pos_freq_item, pos_act_item, freq_baseline, act_baseline, evaluation='distr', method='freq', stats=True):
 
     """
-    :param item_activations:    an iterable containing tuples. Each tuple consists of a string and a floating; the
-                                string, in turn, consists of two parts, separated by a vertical bar ('|')
+    :param pos_freq_item:       a dictionary mapping each PoS tag to its frequency count across the most active
+                                outcomes given the test item being evaluated
+    :param pos_act_item:        a dictionary mapping each PoS tag to the sum of the activation values of all the
+                                outcomes tagged with the PoS tag across the most active outcomes given the test item
+                                being evaluated
     :param freq_baseline:       a dictionary mapping strings (PoS tags) to counts (their frequency of occurrence among
                                 the k top active outcomes at baseline, i.e. given all cues)
     :param act_baseline:        a dictionary mapping strings (PoS tags) to activations, obtained by summing the
@@ -49,10 +52,6 @@ def pick_pos(item_activations, freq_baseline, act_baseline, evaluation='distr', 
     :return value:              the value used to decide (according to the specifications chosen for the parameters
                                 'method', 'evaluation', and 'stats'
     """
-
-    # compute frequency distribution over PoS tags and PoS summed activation over the k most active outcomes given
-    # the test item being considered
-    pos_freq_item, pos_act_item = pos_frequency_and_activation(item_activations)
 
     if evaluation == 'distr':
         if method == 'freq':

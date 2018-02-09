@@ -20,21 +20,21 @@ def scatter(measures, summary, plot_path, name):
     """
 
     sorted_measures = sorted(measures.items(), key=operator.itemgetter(1))
-    subplots = []
-    all = []
+    relevant_subplots = []
+    all_subplots = []
     for measure1, id1 in sorted_measures:
         for measure2, id2 in sorted_measures:
             subplot_id = (id2, id1, measure2, measure1)
-            all.append(subplot_id)
-            if id1 != id2 and (id1, id2, measure1, measure2) not in subplots:
-                subplots.append(subplot_id)
+            all_subplots.append(subplot_id)
+            if id1 != id2 and (id1, id2, measure1, measure2) not in relevant_subplots:
+                relevant_subplots.append(subplot_id)
 
     f_outcome_corr, axarr = plt.subplots(len(measures), len(measures))
     f_outcome_corr.suptitle('Outcomes: correlations')
 
-    for subplot in all:
+    for subplot in all_subplots:
         r, c, y_name, x_name = subplot
-        if subplot in subplots:
+        if subplot in relevant_subplots:
             x = summary[measures[x_name]]
             y = summary[measures[y_name]]
             axarr[r, c].scatter(x, y)
