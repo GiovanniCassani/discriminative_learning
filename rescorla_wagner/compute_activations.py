@@ -2,13 +2,14 @@ __author__ = 'GCassani'
 
 """Function to estimate cue-outcome associations given a corpus"""
 
+import os
 import json
 import numpy as np
 from time import strftime
 from corpus.cues_outcomes import get_cues_and_outcomes
 
 
-def compute_activations(input_file, alpha, beta, lam, indices):
+def compute_activations(input_file, output_files, alpha, beta, lam, indices):
 
     """
     :param input_file:          the path to a a .json file consisting of two lists of lists, the first containing
@@ -18,6 +19,9 @@ def compute_activations(input_file, alpha, beta, lam, indices):
                                 speech). The first list from the list of cue representations matches the first list from
                                 the list of meaning representations, both encoding the two layers of the first learning
                                 event in the corpus
+    :param output_files:        a dictionary mapping time indices indicating the percentage of the input corpus at
+                                which the cue-outcome association matrix estimated up to that point needs to be written
+                                to file to the file paths where each matrix has to be saved
     :param alpha:               cue salience. For simplicity, we assume that every cue has the same salience, so
                                 changing the value of this parameter does not affect the relative strength of
                                 cue-outcome associations but only their absolute magnitude.
@@ -28,14 +32,6 @@ def compute_activations(input_file, alpha, beta, lam, indices):
                                 acts as a scaling factor, so changing its value has the same effects of changing alpha.
     :param indices:             a list of numbers indicating when to store the matrix of associations to file. The
                                 numbers indicate percentages of the input corpus.
-    :return weight_matrices:    a Python dictionary mapping numerical indices indicating the percentage of learning
-                                trials from the input corpus used to NumPy arrays containing cue-outcome associations
-                                computed using the Rescorla-Wagner model of learning: cues are rows and columns are
-                                outcomes. If the longitudinal parameter is set to False, the dictionary contains one
-                                index, 100, and one NumPy array containing cue-outcome associations estimated over the
-                                full corpus. If the longitudinal parameter is set to True, the dictionary contains 10
-                                indices and as many NumPy arrays, each estimated on an increasing number of learning
-                                trials from the input corpus (10%, 20%, 30% and so on)
     """
 
     # get two dictionaries mapping each cue and each outcome from the input corpus to a unique numerical index
@@ -46,7 +42,6 @@ def compute_activations(input_file, alpha, beta, lam, indices):
 
     # create an empty matrix with as many rows as there are cues and as many columns as there are outcomes in
     # input corpus. The indices extracted before will point to a row for cues and to a column for outcomes
-    weight_matrices = {}
     weight_matrix = np.zeros((len(cues2ids), len(outcomes2ids)))
 
     # compute the learning rate once and for all, since alpha doesn't change and beta is constant for all cues
@@ -107,11 +102,18 @@ def compute_activations(input_file, alpha, beta, lam, indices):
         cue_mask = list(set(cue_mask))
         weight_matrix[cue_mask] += delta_a
 
-        # for every additional 5% of processed learning trials, print to console the progress made by the
-        # function
+        # print to console the progress made by the function
         if i+1 in check_points:
             print(strftime("%Y-%m-%d %H:%M:%S") + ": %d%% of the input corpus has been processed."
                   % check_points[i+1])
-            weight_matrices[check_points[i+1]] = weight_matrix
 
-    return weight_matrices, cues2ids, outcomes2ids
+            if os.path.exists(output_files[check_points[i+1]]):
+                print("The file %s already exists." % output_files[check_points[i+1]])
+            else:
+                np.save(output_files[check_points[i+1]], weight_matrix)
+
+    folder = os.path.dirname(input_file)
+    cue_indices = os.path.join(folder, 'cueIDs.json')
+    json.dump(cues2ids, open(cue_indices, 'w'))
+    outcome_indices = os.path.join(folder, 'outcomeIDs.json')
+    json.dump(outcomes2ids, open(outcome_indices, 'w'))

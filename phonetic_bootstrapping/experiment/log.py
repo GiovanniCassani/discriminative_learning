@@ -68,7 +68,7 @@ def make_log_file(training_corpus, test_file, output_folder, method, evaluation,
     filename = os.path.splitext(os.path.basename(training_corpus))[0]
     test_file = os.path.splitext(test_file)[0]
     log_file = os.path.join(output_folder, ".".join(['logfile', filename, test_file, encoding, method, evaluation,
-                                                     ''.join(['t', str(time)]), ''.join(['k', str(k)]),
+                                                     ''.join(['t', str(int(time))]), ''.join(['k', str(k)]),
                                                      ''.join(['f', str(f)]), 'json']))
 
     return log_file

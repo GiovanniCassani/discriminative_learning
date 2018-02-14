@@ -13,15 +13,13 @@ from phonetic_bootstrapping.pos_tagging.tags import get_frequency_and_activation
 from phonetic_bootstrapping.pos_tagging.helpers import compute_outcomes_activations
 
 
-def categorize(test_items, logfile, weights_matrix, cues2ids, outcomes2ids, method='freq', evaluation='count',
+def categorize(test_items, weights_matrix, cues2ids, outcomes2ids, method='freq', evaluation='count',
                stats=False, k=100, flush=0, uni_phones=True, di_phones=False, tri_phones=False, syllable=False,
                stress_marker=False):
 
     """
     :param test_items:      an iterable containing strings. Each string is the phonological form of a word together
                             with its PoS tag, separated by a vertical bar ('|')
-    :param logfile:         the path to a .txt file, where the function prints information about the processes it runs
-                            and their outcome
     :param weights_matrix:  a NumPy array containing the matrix of cue-outcome associations estimated via the ndl
                             module; rows represent cues, columns represent outcomes.
     :param cues2ids:        a Python dictionary mapping cues to row indices in the weight matrix
@@ -82,9 +80,6 @@ def categorize(test_items, logfile, weights_matrix, cues2ids, outcomes2ids, meth
                             over-extension of a PoS tag
     :return freq:           the frequency with which the most frequent PoS tag applied by the model is actually applied
     """
-
-    if type(weights_matrix) is not dict:
-        ValueError("Unrecognized input structure: .")
 
     to_filter = set()
     baseline_activations = compute_outcomes_activations(cues2ids.keys(), weights_matrix, cues2ids,
@@ -166,7 +161,5 @@ def categorize(test_items, logfile, weights_matrix, cues2ids, outcomes2ids, meth
         if total in check_points:
             print(strftime("%Y-%m-%d %H:%M:%S") + ": %d%% of the test items have been processed."
                   % check_points[total])
-
-    json.dump(log_dict, open(logfile, 'w'))
 
     return log_dict

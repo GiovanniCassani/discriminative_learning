@@ -45,17 +45,9 @@ def ndl(input_file, alpha=0.01, beta=0.01, lam=1.0, longitudinal=False):
     :param lam:                 maximum amount of association that an outcome can receive from all the cues. It simply
                                 acts as a scaling factor, so changing its value has the same effects of changing alpha.
     :param longitudinal:        a boolean specifying whether to adopt a longitudinal design and store association
-                                matrices at every 5% of the data, to be able to analyze the time course of learning
-    :return weight_matrices:    a Python dictionary mapping numerical indices indicating the percentage of learning
-                                trials from the input corpus used to NumPy arrays containing cue-outcome associations
-                                computed using the Rescorla-Wagner model of learning: cues are rows and columns are
-                                outcomes. If the longitudinal parameter is set to False, the dictionary contains one
-                                index, 100, and one NumPy array containing cue-outcome associations estimated over the
-                                full corpus. If the longitudinal parameter is set to True, the dictionary contains 20
-                                indices and as many NumPy arrays, each estimated on an increasing number of learning
-                                trials from the input corpus (5%, 10%, 15%, and so on)
-    :return cues2ids:           a Python dictionary mapping cues to row indices in the weight matrix
-    :return outcomes2ids:       a Python dictionary mapping outcomes to column indices in the weight matrix
+                                matrices at every 10%% of the data, to be able to analyze the time course of learning
+    :return file_paths:         a dictionary mapping each time index to the file path where the matrix of cue-outcome
+                                associations at that time index is stored
 
     This function implements Naive Discriminative Learning (NDL, see Baayen, Milin, Durdevic, Hendrix, Marelli (2011)
     for a detailed description of the model and its theoretical background). This learner uses the Rescorla-Wagner
@@ -79,42 +71,22 @@ def ndl(input_file, alpha=0.01, beta=0.01, lam=1.0, longitudinal=False):
     for idx in indices:
         output_files[idx] = os.path.join(folder, '.'.join(['_'.join(['associationMatrix', str(int(idx))]), 'npy']))
 
-    # check if  already exist; if they do, load them, together with the corresponding .json files
-    # containing cue and outcome indices; if they don't, compute the matrix of cue-outcome associations and store it to
-    # file, together with the mapping between cues and row indices, and between outcomes and column indices.
-    # If the longitudinal parameter is set to true, do this for all time points
-    weight_matrices = {}
-    cues2ids, outcomes2ids = [{}, {}]
     missing_indices = []
     for idx, f_path in output_files.items():
-        if os.path.exists(f_path):
-            weight_matrix, cues2ids, outcomes2ids = load(f_path)
-            weight_matrices[idx] = weight_matrix
-        else:
+        if not os.path.exists(f_path):
             missing_indices.append(idx)
+        else:
+            print(strftime("%Y-%m-%d %H:%M:%S") + ": The matrix of weights already exists at file %s." % f_path)
 
-    if not missing_indices:
-        print("The matrix of weights for the desired model(s) already exists and has been loaded.")
-    else:
-        weight_matrices, cues2ids, outcomes2ids = compute_activations(input_file, alpha, beta, lam,
-                                                                      missing_indices)
+    if missing_indices:
 
-        print(strftime("%Y-%m-%d %H:%M:%S") + ": I finished estimating the cue-outcome associations.")
+        print(strftime("%Y-%m-%d %H:%M:%S") + ": I started estimating the cue-outcome associations...")
 
-        # save the weights matrix using the save method for NumPy arrays and the dictionaries mapping cues and
-        # outcomes to their row and column indices respectively to two different .json files
+        # this function writes the matrix of association to file for every time index specified in missing_indices
+        # it also writes to json files the dictionary mapping cues to their row indices in the association matrices,
+        # and the dictionary mapping outcomes to their column indices in the association matrices
+        compute_activations(input_file, output_files, alpha, beta, lam, missing_indices)
 
-        for k in weight_matrices:
-            if os.path.exists(output_files[k]):
-                print("The file %s already exists." % output_files[k])
-            else:
-                np.save(output_files[k], weight_matrices[k])
+        print(strftime("%Y-%m-%d %H:%M:%S") + ": ... I finished estimating the cue-outcome associations.")
 
-        cues_indices = os.path.join(folder, 'cueIDs.json')
-        json.dump(cues2ids, open(cues_indices, 'w'))
-        outcome_indices = os.path.join(folder, 'outcomeIDs.json')
-        json.dump(outcomes2ids, open(outcome_indices, 'w'))
-
-        print(strftime("%Y-%m-%d %H:%M:%S") + ": Finished writing to files.")
-
-    return weight_matrices, cues2ids, outcomes2ids
+    return output_files

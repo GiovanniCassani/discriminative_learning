@@ -11,11 +11,10 @@ def main():
 
     parser = argparse.ArgumentParser(description="Run a grid search to explore all possible parameters.")
 
-    parser.add_argument("-c", "--corpus_folder", required=True, dest="corpus_folder",
-                        help="Specify the folder where the training corpora are located.")
-    parser.add_argument("-T", "--test_set", required=True, dest="test_set",
-                        help="The path to the file containing the test items."
-                             "If a the path to a folder is passed, all the files in it are considered as test sets.")
+    parser.add_argument("-c", "--corpus", required=True, dest="corpus",
+                        help="Specify the path to the training corpus (encoded as .json).")
+    parser.add_argument("-T", "--test_file", required=True, dest="test_file",
+                        help="The path to the file containing the test items.")
     parser.add_argument("-C", "--Celex_folder", required=True, dest="celex_folder",
                         help="Specify the folder where the Celex data are located.")
     parser.add_argument("-O", "--output_file", required=True, dest="out_file",
@@ -28,28 +27,19 @@ def main():
     args = parser.parse_args()
 
     # hardcoded values, specific to the experiment I ran
+
     stress_marker = [True]
     reduced = [False]
     flush = [0, 50, 100, 200]
     k = [25, 50, 75, 100]
-    evaluations = ['count']
-    methods = ['sum']
-    training_corpora = [os.path.join(args.corpus_folder, "aggregate_utterances.json"),
-                        os.path.join(args.corpus_folder, "aggregate_words.json")]
+    evaluations = ['count', 'distr']
+    methods = ['freq', 'sum']
     cues = ['triphones', 'syllables']
     outcomes = ['lemmas', 'tokens']
 
-    if os.path.isdir(args.test_set):
-        test_sets = os.listdir(args.test_set)
-    else:
-        if os.path.isfile(args.test_set):
-            test_sets = [args.test_set]
-        else:
-            raise ValueError("Please provide a valid path for the test file(s).")
+    output_folder = os.path.join(os.path.dirname(args.out_file), "log_files")
 
-    print(test_sets)
-
-    summary_table = run_grid_search(test_sets, training_corpora, cues, outcomes, stress_marker,
+    summary_table = run_grid_search(args.test_file, output_folder, args.corpus, cues, outcomes, stress_marker,
                                     reduced, methods, evaluations, k, flush,
                                     args.celex_folder, args.pos_mapping, args.longitudinal)
 

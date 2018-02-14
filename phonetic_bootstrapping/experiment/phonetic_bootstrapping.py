@@ -10,12 +10,13 @@ from time import strftime
 from collections import defaultdict
 from rescorla_wagner.ndl import ndl
 from corpus.encoder import corpus_encoder
+from matrix.matrix import load
 from phonetic_bootstrapping.experiment.log import make_log_file
 from phonetic_bootstrapping.experiment.categorize import categorize
 from phonetic_bootstrapping.experiment.helpers import compute_summary_statistics
 
 
-def phonetic_bootstrapping(input_file, test_set, celex_dir, pos_mapping,
+def phonetic_bootstrapping(input_file, test_set, celex_dir, pos_mapping, output_folder,
                            method='freq', evaluation='count', k=100, flush=0,
                            separator='~', reduced=False, outcomes='tokens',
                            uni_phones=True, di_phones=False, tri_phones=False, syllable=False, stress_marker=False,
@@ -32,6 +33,7 @@ def phonetic_bootstrapping(input_file, test_set, celex_dir, pos_mapping,
                                    target PoS tag (phonological form and PoS tag are separated by a vertical bar ('|')
     :param celex_dir:           a string specifying the path to the Celex directory
     :param pos_mapping:         a .txt file mapping CHILDES PoS tags to CELEX tags
+    :param output_folder:       the path to the folder where the logfiles will be saved
     :param method:              a string indicating the way in which the function looks at top active outcomes; two
                                 options are available:
                                 - 'freq' makes the function compute the distribution of PoS tags over the k top active
@@ -102,10 +104,7 @@ def phonetic_bootstrapping(input_file, test_set, celex_dir, pos_mapping,
                                     di_phones=di_phones, tri_phones=tri_phones, syllable=syllable,
                                     stress_marker=stress_marker, reduced=reduced, outcomes=outcomes)
 
-    weight_matrices, cues2ids, outcomes2ids = ndl(encoded_corpus, alpha=alpha, beta=beta,
-                                                  lam=lam, longitudinal=longitudinal)
-
-    output_folder = os.path.dirname(encoded_corpus)
+    file_paths = ndl(encoded_corpus, alpha=alpha, beta=beta, lam=lam, longitudinal=longitudinal)
 
     print()
     print("#####" * 20)
@@ -120,7 +119,7 @@ def phonetic_bootstrapping(input_file, test_set, celex_dir, pos_mapping,
     most_frequents = {}
     frequencies = {}
     log_dict = defaultdict(dict)
-    for idx in weight_matrices:
+    for idx, file_path in file_paths.items():
 
         logfile = make_log_file(input_file, test_set['filename'], output_folder, method, evaluation, flush, k, idx,
                                 reduced=reduced, uni_phones=uni_phones, di_phones=di_phones, tri_phones=tri_phones,
@@ -133,12 +132,16 @@ def phonetic_bootstrapping(input_file, test_set, celex_dir, pos_mapping,
 
         else:
 
+            weight_matrix, cues2ids, outcomes2ids = load(file_path)
+
             print(strftime("%Y-%m-%d %H:%M:%S") + ": Start test phase, using %s as test set..."
                   % os.path.basename(test_set['filename']))
 
-            log_dict = categorize(test_set['items'], logfile, weight_matrices[idx], cues2ids, outcomes2ids,
+            log_dict = categorize(test_set['items'], weight_matrix, cues2ids, outcomes2ids,
                                   method=method, evaluation=evaluation, stress_marker=stress_marker, syllable=syllable,
                                   uni_phones=uni_phones, di_phones=di_phones, tri_phones=tri_phones, flush=flush, k=k)
+
+            json.dump(log_dict, open(logfile, 'w'))
 
             print(strftime("%Y-%m-%d %H:%M:%S") + ": ...completed test phase.")
 
