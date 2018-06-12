@@ -53,14 +53,17 @@ def main():
                         help="Specify if stress need to be encoded.")
     parser.add_argument("-r", "--reduced", action="store_true", dest="reduced",
                         help="Specify if reduced vowels are to be considered when extracting CELEX phonetic forms.")
+    parser.add_argument("-b", "--boundaries", action="store_true", dest="boundaries",
+                        help="Specify whether word boundaries are to be considered when training on utterances.")
 
     args = parser.parse_args()
 
     check_arguments(args, parser)
 
     corpus_encoder(args.in_file, args.celex_dir, args.pos_mapping, separator=args.sep,
-                   uni_phones=args.uni, di_phones=args.di, tri_phones=args.tri, syllable=args.syl,
-                   stress_marker=args.stress, reduced=args.reduced, outcomes=args.outcomes)
+                   uniphones=args.uni, diphones=args.di, triphones=args.tri, syllables=args.syl,
+                   stress_marker=args.stress, reduced=args.reduced, outcomes=args.outcomes,
+                   boundaries=args.boundaries)
 
 
 ########################################################################################################################

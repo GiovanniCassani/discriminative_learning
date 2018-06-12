@@ -6,9 +6,13 @@ __author__ = 'GCassani'
 import os
 import numpy as np
 import pandas as pd
+from time import strftime
+from collections import defaultdict
+from phonetic_bootstrapping.experiment.log import make_log_file
 from grid_search.make_test_set import get_words_and_tags_from_test_set
 from phonetic_bootstrapping.experiment.helpers import compute_baselines
 from phonetic_bootstrapping.experiment.phonetic_bootstrapping import phonetic_bootstrapping
+from phonetic_bootstrapping.pos_tagging.error_analysis import get_errors, update_error_analysis_dataset
 
 
 def run_grid_search(test_file, output_folder, input_corpus, cues, outcomes, stress_marker, reduced,
@@ -40,7 +44,10 @@ def run_grid_search(test_file, output_folder, input_corpus, cues, outcomes, stre
     :param longitudinal:        a boolean specifying whether to use or not a longitudinal design
     :return summary_table:      a Pandas data frame containing as many rows as there are different parametrizations
                                 defined by the unique combinations of all the values in the input arguments and the
-                                columns specified in the body of the function when the data frame is initialized
+                                columns specified in the body of the function when the data frame is initialized,
+                                containing summary statistics about each model on a PoS tagging experiment
+    :return error_analysis:     a Pandas data frame with the same number of rows as summary_table, but with columns
+                                indicating the classification and mis-classification patterns by PoS tag for each model
     """
 
     time = 10 if longitudinal else 1
@@ -89,8 +96,11 @@ def run_grid_search(test_file, output_folder, input_corpus, cues, outcomes, stre
     a, b = [0.001, 0.001]  # set parameters for the discriminative learning model
     row_id = 0
 
-    for cue in cues:
-        for outcome in outcomes:
+    categorization_outcomes = defaultdict(dict)
+    categorization_columns = set()
+
+    for outcome in outcomes:
+        for cue in cues:
             for marker in stress_marker:
                 for r in reduced:
                     for method in methods:
@@ -106,21 +116,39 @@ def run_grid_search(test_file, output_folder, input_corpus, cues, outcomes, stre
                                     sm = "stress" if marker else 'no-stress'
                                     training = os.path.splitext(os.path.basename(input_corpus))[0]
 
-                                    log, f1, h, pos, freq = phonetic_bootstrapping(input_corpus, test_set,
-                                                                                   celex_folder, pos_mapping,
-                                                                                   output_folder, reduced=r,
-                                                                                   method=method, flush=f_value,
-                                                                                   k=k_value, evaluation=evaluation,
-                                                                                   stress_marker=marker,
-                                                                                   uni_phones=uniphones,
-                                                                                   di_phones=diphones,
-                                                                                   tri_phones=triphones,
-                                                                                   syllable=syllables,
-                                                                                   outcomes=outcome,
-                                                                                   alpha=a, beta=b, lam=1.0,
-                                                                                   longitudinal=longitudinal)
+                                    logs, f1, h, pos, freq = phonetic_bootstrapping(input_corpus, test_set,
+                                                                                    celex_folder, pos_mapping,
+                                                                                    output_folder, reduced=r,
+                                                                                    method=method, flush=f_value,
+                                                                                    k=k_value, evaluation=evaluation,
+                                                                                    stress_marker=marker,
+                                                                                    uni_phones=uniphones,
+                                                                                    di_phones=diphones,
+                                                                                    tri_phones=triphones,
+                                                                                    syllable=syllables,
+                                                                                    outcomes=outcome,
+                                                                                    alpha=a, beta=b, lam=1.0,
+                                                                                    longitudinal=longitudinal)
 
                                     for time_idx in f1:
+
+                                        log_file = make_log_file(input_corpus, test_set['filename'], output_folder,
+                                                                 method, evaluation, f_value, k_value, time_idx,
+                                                                 reduced=reduced, stress_marker=stress_marker,
+                                                                 uni_phones=uniphones, di_phones=diphones,
+                                                                 tri_phones=triphones, syllable=syllables,
+                                                                 outcomes=outcome)
+
+                                        print(strftime("%Y-%m-%d %H:%M:%S") +
+                                              ": Started error analysis on file %s..." % log_file)
+
+                                        errors = get_errors(logs[time_idx])
+                                        categorization_outcomes[log_file] = errors
+                                        categorization_columns = categorization_columns.union(set(errors.keys()))
+
+                                        print(strftime("%Y-%m-%d %H:%M:%S") +
+                                              ": ...completed error analysis on file %s." % log_file)
+
                                         summary_table.loc[row_id] = pd.Series({"Test_set": test_set['filename'],
                                                                                "Corpus": training, "Cues": cue,
                                                                                "Outcomes": outcome, "Stress": sm,
@@ -136,4 +164,13 @@ def run_grid_search(test_file, output_folder, input_corpus, cues, outcomes, stre
                                                                                "Frequency": freq[time_idx]})
                                         row_id += 1
 
-    return summary_table
+                                    print()
+                                    print()
+                                    print("%" * 120)
+                                    print("%" * 120)
+                                    print()
+                                    print()
+
+    error_analysis = update_error_analysis_dataset(categorization_outcomes, categorization_columns)
+
+    return summary_table, error_analysis

@@ -27,23 +27,25 @@ def get_pos_mapping(input_file):
 ########################################################################################################################
 
 
-def encoding_features(corpus_name, reduced=True, uni_phones=True, di_phones=False, tri_phones=False, syllable=False,
-                      stress_marker=False, outcomes='tokens', log='', verbose=True):
+def encoding_features(corpus_name, reduced=True, uniphones=True, diphones=False, triphones=False, syllables=False,
+                      stress_marker=False, outcomes='tokens', boundaries=False, log='', verbose=True):
 
     """
     :param corpus_name:         a string indicating the name of the corpus being processed
     :param reduced:             a boolean indicating whether reduced phonological forms are extracted from CELEX or not
-    :param uni_phones:          a boolean indicating whether single phonemes are to be considered while encoding input
+    :param uniphones:           a boolean indicating whether single phonemes are to be considered while encoding input
                                 utterances
-    :param di_phones:           a boolean indicating whether sequences of two phonemes are to be considered while
+    :param diphones:            a boolean indicating whether sequences of two phonemes are to be considered while
                                 encoding input utterances
-    :param tri_phones:          a boolean indicating whether sequences of three phonemes are to be considered while
+    :param triphones:           a boolean indicating whether sequences of three phonemes are to be considered while
                                 encoding input utterances
-    :param syllable:            a boolean indicating whether syllables are to be considered while encoding input
+    :param syllables:           a boolean indicating whether syllables are to be considered while encoding input
                                 utterances
     :param stress_marker:       a boolean indicating whether stress markers from the phonological representations of
                                 Celex need to be preserved or can be discarded
     :param outcomes:            a string indicating which outcomes to use, whether 'tokens' (default) or 'lemmas'
+    :param boundaries:          a boolean specifying whether word boundaries are considered when training on full
+                                utterances
     :param log:                 the path to a file where the log is printed. Default is empty string, meaning that no
                                 file is provided and everything is printed to standard output.
     :param verbose:             a boolean indicating whether to print information to screen (default is True)
@@ -60,16 +62,21 @@ def encoding_features(corpus_name, reduced=True, uni_phones=True, di_phones=Fals
     else:
         encoding_string += 'f'
 
-    if uni_phones:
+    if boundaries:
+        encoding_string += 'b'
+    else:
+        encoding_string += 'c'
+
+    if uniphones:
         desired_cues.append('uniphones')
         encoding_string += 'u'
-    if di_phones:
+    if diphones:
         desired_cues.append('diphones')
         encoding_string += 'd'
-    if tri_phones:
+    if triphones:
         desired_cues.append('triphones')
         encoding_string += 't'
-    if syllable:
+    if syllables:
         desired_cues.append('syllables')
         encoding_string += 's'
 

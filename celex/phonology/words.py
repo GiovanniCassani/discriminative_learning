@@ -5,7 +5,7 @@ __author__ = 'GCassani'
 from celex.phonology.utilities import get_stressed_vowel
 
 
-def read_epw(epw_path, celex_dict, vowel_set, reduced=True):
+def read_epw(epw_path, celex_dict, vowel_set, reduced=True, compounds=False):
 
     """
     :param epw_path:    the path to the epw.cd file from the CELEX database
@@ -17,6 +17,8 @@ def read_epw(epw_path, celex_dict, vowel_set, reduced=True):
                         time it can, to be closer to the spoken language. However, since not every token in CELEX has a
                         corresponding reduced version, when this try fails, the function falls back to the canonical
                         version of the token. If False, the standard phonological form is retrieved directly.
+    :param compounds:   a boolean. If true, all entries in Celex are considered; if False, entries which contain spaces
+                        are discarded
     :return celex_dict: the updated version of the celex dictionary, containing token identifiers as keys, each mapped
                         to a dictionary containing information about the token surface form, the lemma identifier of the
                         corresponding lemma, the phonological form of the token and the stressed vowel.
@@ -44,9 +46,8 @@ def read_epw(epw_path, celex_dict, vowel_set, reduced=True):
         for line in epw:
             records = line.strip().split('\\')
 
-            # skip multiword expressions (every token containing whitespaces is a multiword expression)
-            # expression)
-            if ' ' in records[1]:
+            # if compounds is set to False and a space is detected in the string, skip
+            if ' ' in records[1] and not compounds:
                 continue
 
             else:

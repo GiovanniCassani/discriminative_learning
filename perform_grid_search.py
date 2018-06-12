@@ -4,7 +4,7 @@ __author__ = 'GCassani'
 
 import os
 import argparse
-from grid_search.run import run_grid_search
+from phonological_bootstrapping.tagging.grid import grid_search
 
 
 def main():
@@ -36,12 +36,13 @@ def main():
     methods = ['freq', 'sum']
     cues = ['triphones', 'syllables']
     outcomes = ['lemmas', 'tokens']
+    boundaries = [True, False]
 
     output_folder = os.path.join(os.path.dirname(args.out_file), "log_files")
 
-    summary_table = run_grid_search(args.test_file, output_folder, args.corpus, cues, outcomes, stress_marker,
-                                    reduced, methods, evaluations, k, flush,
-                                    args.celex_folder, args.pos_mapping, args.longitudinal)
+    summary_table = grid_search(args.test_file, output_folder, args.corpus, cues, outcomes, boundaries,
+                                stress_marker, reduced, methods, evaluations, k, flush,
+                                args.celex_folder, args.pos_mapping, args.longitudinal)
 
     summary_table.to_csv(args.out_file, sep='\t', index=False)
 

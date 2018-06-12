@@ -4,7 +4,7 @@ __author__ = 'GCassani'
 
 import os
 import argparse
-from grid_search.make_test_set import make_test_set
+from phonological_bootstrapping.test.make import make_test_set
 
 
 def check_input_arguments(args):

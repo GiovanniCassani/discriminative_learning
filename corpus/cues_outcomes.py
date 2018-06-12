@@ -29,8 +29,8 @@ def get_cues_and_outcomes(input_file):
         trial_outcomes = set(corpus[1][i])
         outcomes.update(trial_outcomes)
 
-    cues2ids = {k: idx for idx, k in enumerate(cues)}
-    outcomes2ids = {k: idx for idx, k in enumerate(outcomes)}
+    cues2ids = {k: idx for idx, k in enumerate(sorted(cues))}
+    outcomes2ids = {k: idx for idx, k in enumerate(sorted(outcomes))}
 
     return cues2ids, outcomes2ids
 

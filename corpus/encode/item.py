@@ -8,21 +8,22 @@ from corpus.encode.stress import recode_stress
 from celex.utilities.helpers import vowels
 
 
-def encode_item(item, uni_phones=True, di_phones=False, tri_phones=False,
-                syllable=False, stress_marker=False):
+def encode_item(item, uniphones=True, diphones=False, triphones=False, syllables=False,
+                stress_marker=False, boundaries=True):
 
     """
     :param item:            a string
-    :param uni_phones:      a boolean indicating whether single phonemes are to be considered while encoding input
+    :param uniphones:       a boolean indicating whether single phonemes are to be considered while encoding input
                             utterances
-    :param di_phones:       a boolean indicating whether sequences of two phonemes are to be considered while
+    :param diphones:        a boolean indicating whether sequences of two phonemes are to be considered while
                             encoding input utterances
-    :param tri_phones:      a boolean indicating whether sequences of three phonemes are to be considered while
+    :param triphones:       a boolean indicating whether sequences of three phonemes are to be considered while
                             encoding input utterances
-    :param syllable:        a boolean indicating whether syllables are to be considered while encoding input
+    :param syllables:       a boolean indicating whether syllables are to be considered while encoding input
                             utterances
     :param stress_marker:   a boolean indicating whether stress markers from the input phonological representation need
                             to be preserved or can be discarded
+    :param boundaries:      a boolean indicating whether word boundaries should be considered or not in the output
     :return nphones:        an iterable containing the desired phonetic cues from the input word
         """
 
@@ -34,20 +35,17 @@ def encode_item(item, uni_phones=True, di_phones=False, tri_phones=False,
     else:
         item = item.translate(translation_table)
 
-    uniphones = []
-    diphones = []
-    triphones = []
-    syllables = []
+    uni, di, tri, syl = [[], [], [], []]
 
-    if syllable:
-        syllables = get_syllables(item)
+    if syllables:
+        syl = get_syllables(item)
 
     # check that syllables only contain one vowel, print otherwise to evaluate what to do:
     # loop through every character in the syllable, check if the character is a vowel and increment the
     # vowel count if it is; if the vowel count reaches 2, print the utterance and the syllable, and get
     # out of the loop
     # CAVEAT: this should not print anything, it's just a sanity check
-    for s in syllables:
+    for s in syl:
         v = 0
         for c in s:
             if c in celex_vowels:
@@ -61,12 +59,17 @@ def encode_item(item, uni_phones=True, di_phones=False, tri_phones=False,
     # a single list representing the phonetic layer of the input
     table = str.maketrans(dict.fromkeys("-"))
     item = item.translate(table)
-    if uni_phones:
-        uniphones = get_nphones(item, n=1)
-    if di_phones:
-        diphones = get_nphones(item, n=2)
-    if tri_phones:
-        triphones = get_nphones(item, n=3)
-    nphones = uniphones + diphones + triphones + syllables
+    if not boundaries:
+        table = str.maketrans(dict.fromkeys("+"))
+        item = item.translate(table)
+        item = '+' + item + '+'
+
+    if uniphones:
+        uni = get_nphones(item, n=1)
+    if diphones:
+        di = get_nphones(item, n=2)
+    if triphones:
+        tri = get_nphones(item, n=3)
+    nphones = uni + di + tri + syl
 
     return nphones

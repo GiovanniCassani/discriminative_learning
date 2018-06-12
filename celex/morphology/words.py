@@ -3,11 +3,13 @@ __author__ = 'GCassani'
 """Function to get word level morphological information from the Celex database"""
 
 
-def read_emw(emw_path, celex_dict):
+def read_emw(emw_path, celex_dict, compounds=False):
 
     """
     :param emw_path:    the path to the emw.cd file from the CELEX database
     :param celex_dict:  a dictionary built using make_celex_dict and already updated using read_epw() and read_epl()
+    :param compounds:   a boolean. If true, all entries in Celex are considered; if False, entries which contain spaces
+                        are discarded
     :return celex_dict: the input dictionary, updated with information about the inflectional morphology of each token
 
     ------------------------------------------------------------------------------
@@ -46,8 +48,8 @@ def read_emw(emw_path, celex_dict):
         for line in emw:
             records = line.strip().split('\\')
 
-            # skip multi-word expressions (every token containing whitespaces is a multiword expression here)
-            if ' ' in records[1]:
+            # if compounds is set to False and a space is detected in the string, skip
+            if ' ' in records[1] and not compounds:
                 continue
             else:
                 # check that the token being considered already exists in the celex dictionary and then that its surface

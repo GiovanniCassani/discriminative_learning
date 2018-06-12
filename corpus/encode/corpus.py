@@ -11,23 +11,23 @@ from corpus.encode.words.phonology import get_phonetic_encoding, concatenate_pho
 
 
 def encode_corpus(corpus_name, celex_dict, tokens2identifiers, pos_dict,
-                  separator='~', uni_phones=False, di_phones=True, tri_phones=False, syllable=False,
-                  stress_marker=True, outcomes='tokens'):
+                  separator='~', uniphones=False, diphones=True, triphones=False, syllables=False,
+                  stress_marker=True, outcomes='tokens', boundaries=False):
 
     """
     :param corpus_name:         the path indicating the .json file to be used as input corpus
-    :param celex_dict:          the path to the Celex dictionary to be used to recode the utterances into phonetic cues
-                                and lexical outcomes
+    :param celex_dict:          the Celex dictionary to be used to recode the utterances into phonetic cues
     :param tokens2identifiers:  a dictionary mapping a token surface form from Celex to all token ids linked to it
     :param pos_dict:            a dictionary mapping CHILDES PoS tags to corresponding Celex PoS tags
     :param separator:           a string indicating the character separating lemmas from PoS tags in the input corpus
-    :param uni_phones:          a boolean indicating whether uni-phones are relevant phonetic cues
-    :param di_phones:           a boolean indicating whether di-phones are relevant phonetic cues
-    :param tri_phones:          a boolean indicating whether tri-phones are relevant phonetic cues
-    :param syllable:            a boolean indicating whether syllables are relevant phonetic cues
+    :param uniphones:           a boolean indicating whether uni-phones are relevant phonetic cues
+    :param diphones:            a boolean indicating whether di-phones are relevant phonetic cues
+    :param triphones:           a boolean indicating whether tri-phones are relevant phonetic cues
+    :param syllables:           a boolean indicating whether syllables are relevant phonetic cues
     :param stress_marker:       a boolean indicating whether to discard or not the stress marker from the Celex phonetic
                                 transcriptions
     :param outcomes:            a string indicating which outcomes to use, whether 'tokens' (default) or 'lemmas'
+    :param boundaries:          a boolean indicating whether to preserve or discard word boundaries
     :return encoded corpus:     the input corpus recoded as a list of lists, where each inner list is a learning event
                                 and consist of two sub-lists, the first containing phonetic cues and the second
                                 containing lexical outcomes
@@ -56,7 +56,7 @@ def encode_corpus(corpus_name, celex_dict, tokens2identifiers, pos_dict,
                 words.append((token, new_tag, lemma))
 
         # if there are valid words in the utterance, encode it
-        if 0 < len(words) <= 12:
+        if 0 < len(words) <= 20:
 
             # get the phonetic encoding of the words in the current learning trial:
             # if they can all be encoded using Celex, a list is returned, other wise a tuple is
@@ -69,8 +69,8 @@ def encode_corpus(corpus_name, celex_dict, tokens2identifiers, pos_dict,
                 table = str.maketrans(dict.fromkeys('"'))
                 utterance = utterance.translate(table)
 
-                n_phones = encode_item(utterance, uni_phones=uni_phones, di_phones=di_phones,
-                                       tri_phones=tri_phones, syllable=syllable, stress_marker=stress_marker)
+                n_phones = encode_item(utterance, stress_marker=stress_marker, boundaries=boundaries,
+                                       uniphones=uniphones, diphones=diphones, triphones=triphones, syllables=syllables)
 
                 outcomes_set = set()
                 for word in words:
@@ -82,12 +82,6 @@ def encode_corpus(corpus_name, celex_dict, tokens2identifiers, pos_dict,
                     else:
                         raise ValueError("Unrecognized specification concerning lexical outcomes. "
                                          "Please, choose either 'tokens' or 'lemmas'.")
-
-                # if grammatical meanings such as PAST, PLURAL, 3RD PERSON and so on are needed, un comment the
-                # following statement (and the last import statement at the top of the file):
-                # outcomes = get_morphological_encoding(words, celex_dict, tokens2identifiers)
-                # when a word doesn't have a morphological representation in Celex, the token is used as an un-analyzed
-                # lexical unit).
 
                 # append the phonetic representation of the current learning event to the list of phonetic
                 # representations for the whole corpus, and the lexical meanings of the current learning event to

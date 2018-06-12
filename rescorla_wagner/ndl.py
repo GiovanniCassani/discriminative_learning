@@ -1,10 +1,8 @@
 __author__ = 'GCassani'
 
 import os
-import json
 import numpy as np
 from time import strftime
-from matrix.matrix import load
 from rescorla_wagner.compute_activations import compute_activations
 
 

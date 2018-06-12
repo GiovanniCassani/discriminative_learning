@@ -5,7 +5,7 @@ __author__ = 'GCassani'
 
 import os
 import argparse
-from phonetic_bootstrapping.analysis.inspect import inspect_the_matrix
+from analysis.inspect import inspect_the_matrix
 
 
 def check_input_arguments(args, parser):

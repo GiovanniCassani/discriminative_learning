@@ -34,8 +34,19 @@ def compute_activations(input_file, output_files, alpha, beta, lam, indices):
                                 numbers indicate percentages of the input corpus.
     """
 
-    # get two dictionaries mapping each cue and each outcome from the input corpus to a unique numerical index
-    cues2ids, outcomes2ids = get_cues_and_outcomes(input_file)
+    folder = os.path.dirname(input_file)
+    cue_indices = os.path.join(folder, 'cueIDs.json')
+    outcome_indices = os.path.join(folder, 'outcomeIDs.json')
+
+    if os.path.exists(cue_indices) and os.path.exists(outcome_indices):
+        cues2ids = json.load(open(cue_indices, 'r'))
+        outcomes2ids = json.load(open(outcome_indices, 'r'))
+    else:
+        # get two dictionaries mapping each cue and each outcome from the input corpus to a unique numerical index
+        cues2ids, outcomes2ids = get_cues_and_outcomes(input_file)
+        json.dump(cues2ids, open(cue_indices, 'w'))
+        json.dump(outcomes2ids, open(outcome_indices, 'w'))
+
     print()
     print(strftime("%Y-%m-%d %H:%M:%S") + ": number of cues and outcomes in the input corpus estimated.")
     print()
@@ -58,7 +69,7 @@ def compute_activations(input_file, output_files, alpha, beta, lam, indices):
 
     for i in range(len(corpus[0])):
         # get the cues and outcomes in the learning trial
-        trial_cues = set(corpus[0][i])
+        trial_cues = list(corpus[0][i])
         trial_outcomes = set(corpus[1][i])
 
         # Create a masking vector for outcomes: the vector contains 0s for all outcomes that don't occur in the
@@ -80,26 +91,27 @@ def compute_activations(input_file, output_files, alpha, beta, lam, indices):
         # returning the total activation for all outcomes. The total activation for unknown outcomes, those that
         # are yet to be experienced, will be 0.
         total_v = np.sum(weight_matrix[cue_mask], axis=0)
+
+        """
+        exceeding_ids = np.argwhere(total_v > lam)
+        exceeding_lam = total_v[total_v > lam]
         if total_v[total_v > lam].any():
             print(strftime("%Y-%m-%d %H:%M:%S") + ": Something went wrong with utterance number %d:" % i)
+            print('outcomes for which activation over cues exceeds lambda: ', exceeding_ids)
+            print('activation for outcomes with activation higher than lambda: ', exceeding_lam)
             print(trial_cues, trial_outcomes)
-            print('The total amount of activation for the current learning instance exceeded the '
-                  'chosen value for the lambda parameter: the amount of activation was set to lambda.')
-            total_v[total_v > lam] = lam
+        """
 
         # compute the change in activation for each outcome using the outcome masking vector (that has a value
         # of 0 in correspondence of all absent outcomes and a value of lambda in correspondence of all present
         # outcomes). Given that yet to be experienced outcomes have a total activation of 0 and a lambda value
-        # of 0, no change in association is needed for cue-outcome associations involving these outcomes. On the
-        # contrary, known but not present outcomes have a lambda value of 0 but a total activation higher or
-        # lower, resulting in a change of association.
+        # of 0, no change in association happens for cue-outcome associations involving these outcomes. On the
+        # contrary, known but not present outcomes have a lambda value of 0 (in the outcome mask vector) but a
+        # total activation higher or lower, resulting in a change of association.
         delta_a = (outcome_mask - total_v) * learning_rate
 
-        # get rid of duplicates in the cue masking vector since cue associations are only updated once,
-        # regardless of how many times a cue occurs in the current trial. Then sum the vector of changes in
-        # association to the weight matrix: each value in delta_a is summed to all values in the corresponding
-        # column of the weight_matrix.
-        cue_mask = list(set(cue_mask))
+        # sum the vector of changes in association to the weight matrix: each value in delta_a is summed to all
+        # values in the corresponding column of the weight_matrix indicated by cue_mask
         weight_matrix[cue_mask] += delta_a
 
         # print to console the progress made by the function
@@ -111,9 +123,3 @@ def compute_activations(input_file, output_files, alpha, beta, lam, indices):
                 print("The file %s already exists." % output_files[check_points[i+1]])
             else:
                 np.save(output_files[check_points[i+1]], weight_matrix)
-
-    folder = os.path.dirname(input_file)
-    cue_indices = os.path.join(folder, 'cueIDs.json')
-    json.dump(cues2ids, open(cue_indices, 'w'))
-    outcome_indices = os.path.join(folder, 'outcomeIDs.json')
-    json.dump(outcomes2ids, open(outcome_indices, 'w'))

@@ -47,12 +47,12 @@ def get_phonetic_encoding(word_list, celex, tokens2identifiers):
 ########################################################################################################################
 
 
-def get_phonological_form(word, celex, tokens2identifiers):
+def get_phonological_form(word, celex_dict, tokens2identifiers):
 
     """
     :param word:                a tuple consisting of three strings, the word form, its PoS tag, and the corresponding
                                 lemma
-    :param celex:               a dictionary containing information extracted from the CELEX database, encoded using the
+    :param celex_dict:          a dictionary containing information extracted from the CELEX database, encoded using the
                                 celex_processing.py method (see documentation therein)
     :param tokens2identifiers:  a dictionary mapping tokens to all the token ids from CELEX that correspond to the given
                                 surface form
@@ -82,7 +82,7 @@ def get_phonological_form(word, celex, tokens2identifiers):
     # If no lemma associated with the input surface form maps to the same PoS as the one of the input token, print a
     # warning message and return None
     if token_ids:
-        phonological_form = return_matching_phonology(token_pos, lemma, token_ids, celex)
+        phonological_form = return_matching_phonology(token_pos, lemma, token_ids, celex_dict)
         return phonological_form
 
     # if the empty set is returned, meaning that no tokenID could be retrieved from CELEX, check whether it contains an
@@ -101,7 +101,7 @@ def get_phonological_form(word, celex, tokens2identifiers):
                 # if at least one tokenID is found, get the corresponding phonological form and append it to the list
                 # of phonological representations for the current surface form, which consists of several subunits
                 if token_ids:
-                    phonological_forms.append(return_matching_phonology(token_pos, lemma, token_ids, celex))
+                    phonological_forms.append(return_matching_phonology(token_pos, lemma, token_ids, celex_dict))
 
                 # otherwise, flag the surface form to warn that it's lacking from celex and return None, since the
                 # complete phonological representation for the complex surface form cannot be entirely derived from
@@ -166,7 +166,7 @@ def concatenate_phonological_representations(phonological_representations):
     """
     :param phonological_representations:    a list of phonological forms retrieved from the Celex database
     :return utterance:                      a string containing all the input phonological forms, joined with word
-                                            boundary markers (plus, '+')
+                                            boundary markers ('+')
     """
 
     # join each phonological representation with a word boundary marker ('+'), and also signal utterance boundaries

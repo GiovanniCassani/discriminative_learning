@@ -59,3 +59,34 @@ def rearrange(matrix, f, axis='r', reverse=False):
         ValueError("Please specify the axis on which marginals are computed: either 'r' or 'c'.")
 
     return matrix
+
+
+########################################################################################################################
+
+
+def group_outcomes(matrix, outcomes2ids):
+
+    """
+    :param matrix:          a NumPy 2d array
+    :param outcomes2ids:    a dictionary mapping strings to column indices of the input matrix. Each string consists of
+                            a word and a part of speech tag separated by a pipe symbol ('|')
+    :return: sorted_matrix: the input matrix, with columns regrouped so that words from a same pos tag are net to each
+                            other
+    :return outcomes2ids:   a dictionary mapping outcomes from the input dictionary to the corresponding columns of the
+                            output matrix
+    """
+
+    # sort outcomes according to their PoS
+    sorted_by_pos = sorted(outcomes2ids.items(), key=lambda tup: tup[0].split('|')[1])
+    # get the column indices of the outcomes keeping the new order
+    sorted_indices = [ii for outcome, ii in sorted_by_pos]
+    # reorder the columns in the input matrix using the sorted indices: the column corresponding to the first index
+    # will be the first of the sorted_matrix
+    sorted_matrix = matrix[:, sorted_indices]
+    # map outcomes to their new column indices, since the outcome at the first column in the original matrix does not
+    # point to the first matrix anymore
+    outcomes2ids = {}
+    for idx, outcome in enumerate(sorted_by_pos):
+        outcomes2ids[outcome[0]] = idx
+
+    return sorted_matrix, outcomes2ids

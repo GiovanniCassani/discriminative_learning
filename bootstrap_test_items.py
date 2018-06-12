@@ -3,7 +3,7 @@ __author__ = 'GCassani'
 """Function to get the test items (can be called from command line)"""
 
 import argparse
-from grid_search.bootstrap_test_sets import bootstrap_test_sets
+from phonological_bootstrapping.test.bootstrap import bootstrap_test_sets
 
 
 def main():

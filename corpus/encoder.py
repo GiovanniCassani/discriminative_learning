@@ -12,7 +12,8 @@ from corpus.encode.corpus import encode_corpus
 
 
 def corpus_encoder(corpus_name, celex_dir, pos_mapping, separator='~', reduced=True, outcomes='tokens',
-                   uni_phones=True, di_phones=False, tri_phones=False, syllable=False, stress_marker=False):
+                   uniphones=True, diphones=False, triphones=False, syllables=False, stress_marker=False,
+                   boundaries=False):
 
     """
     :param corpus_name:     the path to a .json file containing transcripts of child-caregiver interactions extracted
@@ -34,16 +35,17 @@ def corpus_encoder(corpus_name, celex_dir, pos_mapping, separator='~', reduced=T
                             whenever possible (if set to True) or if standard phonological forms should be preserved
                             (if False)
     :param outcomes:        a string indicating which outcomes to use, whether 'tokens' (default) or 'lemmas'
-    :param uni_phones:      a boolean indicating whether single phonemes are to be considered while encoding input
+    :param uniphones:       a boolean indicating whether single phonemes are to be considered while encoding input
                             utterances
-    :param di_phones:       a boolean indicating whether sequences of two phonemes are to be considered while
+    :param diphones:        a boolean indicating whether sequences of two phonemes are to be considered while
                             encoding input utterances
-    :param tri_phones:      a boolean indicating whether sequences of three phonemes are to be considered while
+    :param triphones:       a boolean indicating whether sequences of three phonemes are to be considered while
                             encoding input utterances
-    :param syllable:        a boolean indicating whether syllables are to be considered while encoding input
+    :param syllables:       a boolean indicating whether syllables are to be considered while encoding input
                             utterances
     :param stress_marker:   a boolean indicating whether stress markers from the phonological representations of Celex
                             need to be preserved or can be discarded
+    :param boundaries:      a boolean indicating whether to preserve or discard word boundaries
     :return out_file:   	the path to the file where the encoded version of the input file has been printed
 
     This function runs in linear time on the length of the input (if it takes 1 minute to process 1k utterances,
@@ -61,9 +63,9 @@ def corpus_encoder(corpus_name, celex_dir, pos_mapping, separator='~', reduced=T
     # use the path of the input file to generate the path of the output file, adding encoding information to the
     # input filename; print to standard output a summary of all the encoding parameters
     input_filename, extension = os.path.splitext(corpus_name)
-    encoding_string = encoding_features(corpus_name, reduced=reduced, uni_phones=uni_phones, di_phones=di_phones,
-                                        tri_phones=tri_phones, syllable=syllable, stress_marker=stress_marker,
-                                        outcomes=outcomes)
+    encoding_string = encoding_features(corpus_name, reduced=reduced, uniphones=uniphones, diphones=diphones,
+                                        triphones=triphones, syllables=syllables, stress_marker=stress_marker,
+                                        outcomes=outcomes, boundaries=boundaries)
     output_folder = "_".join([input_filename, encoding_string])
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
@@ -82,9 +84,9 @@ def corpus_encoder(corpus_name, celex_dir, pos_mapping, separator='~', reduced=T
         # get the corpus recoded into phonological cues and lexical outcomes, plus the percentage of utterances that
         # could not be recoded because one or more words do not have a corresponding entry in Celex
         encoded_corpus, missed = encode_corpus(corpus_name, celex_dict, tokens2identifiers, pos_dict,
-                                               separator=separator, uni_phones=uni_phones, di_phones=di_phones,
-                                               tri_phones=tri_phones, syllable=syllable, stress_marker=stress_marker,
-                                               outcomes=outcomes)
+                                               separator=separator, uniphones=uniphones, diphones=diphones,
+                                               triphones=triphones, syllables=syllables, stress_marker=stress_marker,
+                                               outcomes=outcomes, boundaries=boundaries)
         print()
         print(strftime("%Y-%m-%d %H:%M:%S") + ": Finished encoding utterances from input corpus '%s'" % corpus_name)
         print()
