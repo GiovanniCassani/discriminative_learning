@@ -14,6 +14,20 @@ from celex.utilities.helpers import vowels
 from celex.utilities.add_words import add_childes_words
 
 
+def get_name(compounds=False, reduced=False):
+
+    dict_name = 'celex_dict'
+    if compounds:
+        dict_name += '_compounds'
+    if reduced:
+        dict_name += '_reduced'
+
+    return '.'.join([dict_name, 'json'])
+
+
+########################################################################################################################
+
+
 def initialize_celex_dict():
 
     """
@@ -47,12 +61,14 @@ def print_celex_dict(celex_dict, outfile):
 ########################################################################################################################
 
 
-def create_celex_dictionary(celex_dir, reduced=True):
+def create_celex_dictionary(celex_dir, reduced=True, compounds=False):
 
     """
     :param celex_dir:   a string specifying the path to the folder where the information extracted from the Celex
                         database will be stored
     :param reduced:     a boolean specifying whether reduce phonological form should be always preferred when available
+    :param compounds:   a boolean. If true, all entries in Celex are considered; if False, entries which contain spaces
+                        are discarded
     :return celex_dict: a Python dictionary containing information about phonology and morphology about words from the
                         Celex database. For further details about which information is stored and how, check the
                         documentation of the functions in this module
@@ -67,21 +83,19 @@ def create_celex_dictionary(celex_dir, reduced=True):
     celex_vowels = vowels()
     celex_dict = initialize_celex_dict()
 
-    celex_dict = read_epw(epw_path, celex_dict, celex_vowels, reduced=reduced)
+    celex_dict = read_epw(epw_path, celex_dict, celex_vowels, reduced=reduced, compounds=compounds)
     print(": ".join([strftime("%Y-%m-%d %H:%M:%S"), "I finished processing the epw.cd file."]))
     celex_dict = read_epl(epl_path, celex_dict)
     print(": ".join([strftime("%Y-%m-%d %H:%M:%S"), "I finished processing the epl.cd file."]))
-    celex_dict = read_emw(emw_path, celex_dict)
+    celex_dict = read_emw(emw_path, celex_dict, compounds=compounds)
     print(": ".join([strftime("%Y-%m-%d %H:%M:%S"), "I finished processing the emw.cd file."]))
     celex_dict = read_eml(eml_path, celex_dict)
     print(": ".join([strftime("%Y-%m-%d %H:%M:%S"), "I finished processing the eml.cd file."]))
 
     celex_dict = add_childes_words(celex_dict)
 
-    if reduced:
-        celex_dict_file = os.path.join(celex_dir, 'celex_dict_reduced.json')
-    else:
-        celex_dict_file = os.path.join(celex_dir, 'celex_dict.json')
+    dict_name = get_name(compounds=compounds, reduced=reduced)
+    celex_dict_file = os.path.join(celex_dir, dict_name)
 
     print_celex_dict(celex_dict, celex_dict_file)
 
@@ -91,25 +105,26 @@ def create_celex_dictionary(celex_dir, reduced=True):
 ########################################################################################################################
 
 
-def get_celex_dictionary(celex_dir, reduced):
+def get_celex_dictionary(celex_dir, reduced=False, compounds=False):
 
     """
     :param celex_dir:       a string specifying the path to the Celex directory where the dictionary should be located.
                             If the dictionary is found, it is loaded and returned, otherwise it is created
     :param reduced:         a boolean specifying whether reduce phonological form should be always preferred when
                             available
+    :param compounds:       a boolean. If true, all entries in Celex are considered; if False, entries which contain
+                            spaces are discarded
     :return celex_dict:     a Python dictionary containing information about phonology and morphology of words extracted
                             from the CELEX database (for further details, see the documentation of the
                             celex_processing.py module
     """
 
-    # check whether the Celex dictionary already exists in the subdirectory Celex of the working directory and if it
-    # does load it; if it doesn't, make it
-    dict_name = 'celex_dict.json' if not reduced else 'celex_dict_reduced.json'
+    dict_name = get_name(compounds=compounds, reduced=reduced)
+
     try:
         celex_dict = json.load(open(os.path.join(celex_dir, dict_name), 'r'))
         print(": ".join([strftime("%Y-%m-%d %H:%M:%S"), "The desired Celex dictionary was loaded"]))
     except IOError:
-        celex_dict = create_celex_dictionary(celex_dir, reduced=reduced)
+        celex_dict = create_celex_dictionary(celex_dir, reduced=reduced, compounds=compounds)
 
     return celex_dict

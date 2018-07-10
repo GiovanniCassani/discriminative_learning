@@ -118,6 +118,26 @@ def check_row_variances(matrix):
 ########################################################################################################################
 
 
+def check_col_variances(matrix):
+
+    """
+    :param matrix:  a NumPy 2d array
+    :return:        the input array without any column that has variance 0 and the indices of columns that have
+                    variance 0
+    """
+
+    # compute the variance for each column and remove those that have no variance over the rows of the
+    # subset matrix
+    col_vars = np.var(matrix, axis=0)
+    exclude = np.where(col_vars == 0)[0]
+    matrix = matrix[:, np.nonzero(col_vars)[0]]
+
+    return matrix, exclude
+
+
+########################################################################################################################
+
+
 def realign_targets(target_outcomes, exclude):
 
     """
@@ -129,8 +149,8 @@ def realign_targets(target_outcomes, exclude):
                             without all words whose index is in exclude. Indices are realigned considering those that
                             were removed: suppose that exclude contains indices 350 and 512 with target_outcomes
                             containing 600 tokens. In the output dictionary, the words that were mapped to indices 350
-                            and 512 have been deleted, and the token that mapped to 351 in the input now maps to 350
-                            while the token which mapped to 600 now maps to 598.
+                            and 512 have been deleted, and the tokens that mapped to 351 and 513 in the input now map
+                            to 350 and 511 respectively, while the token which mapped to 600 now maps to 598.
     """
 
     targets = {}
@@ -172,8 +192,7 @@ def subset_experiment(associations, target_outcomes, how_many_cues=100, how_many
     associations = associations.T
     rows, cols = associations.shape
     k = cols if how_many_cues > cols else how_many_cues
-    phon_accuracy, phon_accuracy_subset, associations_subset = _fit_k(associations, target_tags,
-                                                                                      how_many=k)
+    phon_accuracy, phon_accuracy_subset, associations_subset = _fit_k(associations, target_tags, how_many=k)
     print("The LDA on cue-outcome activations has been completed.")
 
     # get rid of observation with variance 0 over the dimensions in the subset association matrix
@@ -191,8 +210,7 @@ def subset_experiment(associations, target_outcomes, how_many_cues=100, how_many
 
     rows, cols = similarities.shape
     k = cols if how_many_tokens > cols else how_many_tokens
-    distr_accuracy, distr_accuracy_subset, similarity_subset = _fit_k(similarities, target_tags,
-                                                                                        how_many=k)
+    distr_accuracy, distr_accuracy_subset, similarity_subset = _fit_k(similarities, target_tags, how_many=k)
     print("The LDA on outcome-outcome correlation similarities has been completed.")
 
     return phon_accuracy, phon_accuracy_subset, phon_baseline, distr_accuracy, distr_accuracy_subset, distr_baseline
